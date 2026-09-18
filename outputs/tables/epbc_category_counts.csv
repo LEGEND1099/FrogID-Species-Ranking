@@ -1,0 +1,5 @@
+cohort,epbc_category,species,clean_single_species_events
+all_raw_species,Endangered,12,0
+all_raw_species,Unresolved / no exact listed-name match,192,291103
+all_raw_species,Vulnerable,12,0
+selected_model_species,Unresolved / no exact listed-name match,18,247406

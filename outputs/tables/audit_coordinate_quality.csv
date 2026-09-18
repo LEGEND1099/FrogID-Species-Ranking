@@ -1,0 +1,2 @@
+missing_latitude,missing_longitude,missing_uncertainty,uncertainty_le_100m,uncertainty_le_1000m,uncertainty_le_3000m,uncertainty_gt_3000m
+0,0,0,877049,925809,948909,25185

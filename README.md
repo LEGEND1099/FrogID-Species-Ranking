@@ -1,44 +1,36 @@
 # FrogID Species Ranking
 
 STAT5003 Computational Statistics project investigating whether environmental,
-seasonal and geographic context can be used to rank Australian frog species
-likely to be detected in FrogID recordings.
+seasonal and geographic context can rank Australian frog species likely to be
+detected in a FrogID recording, and how rankings might surface threatened species.
 
-## Research question
+The primary task is multiclass classification on single-species recording events.
+Multi-species recordings are preserved as a separate future Top-k evaluation
+extension. Current work is **data preparation only**: no EDA or models are fitted.
 
-**Can environmental, seasonal and geographic characteristics be used to rank
-the Australian frog species most likely to be detected in a FrogID recording,
-and how effectively can these rankings surface threatened species among the
-top candidate predictions?**
+## Data preparation
 
-## Planned data sources
+See [the data pipeline](docs/data-pipeline.md) for reproduction, quality rules,
+source provenance, exclusions, dataset dimensions, and limitations.
 
-- Australian Museum FrogID occurrence data
-- WorldClim 2.1 climate and elevation data
-- Australian EPBC threatened-species information
-- IBRA bioregions where useful
+Sources are Australian Museum FrogID Dataset 6, WorldClim 2.1 Australian country
+rasters at 30 arc-seconds, and official DCCEEW/SPRAT EPBC metadata. IBRA remains
+optional future context.
 
-## Planned analysis
+Restore the R environment with `renv::restore(prompt = FALSE)`. The original raw
+FrogID CSV belongs at `data/raw/frogid/FrogID6_final_dataset.csv`. Follow the
+pipeline documentation to build and validate the local analysis datasets.
 
-The primary task is multiclass frog-species prediction with Top-1, Top-3 and
-Top-5 evaluation.
-
-Single-species FrogID recording events will form the primary multiclass
-dataset. Recordings containing multiple detected species will be retained as
-a separate Top-k recommendation extension.
-
-The project will compare environmental-only and geography-enhanced models and
-will separately evaluate performance for threatened species represented in
-the public FrogID data.
+Raw, interim and processed datasets are ignored by Git. Only code, documentation,
+package versions, and aggregate summaries are committed. Exact recording
+locations and observer identifiers are not included in public outputs.
 
 ## Repository structure
 
-- R/ - acquisition, cleaning, integration, feature engineering and modelling
-- nalysis/ - data audit, EDA and modelling notebooks
-- data/raw/ - original source data; not committed
-- data/interim/ - cleaned/intermediate datasets; not committed
-- data/processed/ - final modelling datasets; not committed
-- outputs/ - figures and summary tables
-- docs/ - methodology and data documentation
-- eport/ - final report material
-- 	ests/ - validation checks
+- `R/`: acquisition, quality filtering, feature creation, and integration scripts.
+- `data/raw/`: immutable/downloaded sources, local only.
+- `data/interim/`: audited event cohorts and extraction caches, local only.
+- `data/processed/`: final analysis tables and predictor matrices, local only.
+- `outputs/tables/`: small public aggregate validation summaries.
+- `docs/`: methodology and source documentation.
+- `tests/`: preparation and integration validation.

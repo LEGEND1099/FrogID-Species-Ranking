@@ -1,0 +1,6 @@
+coordinateUncertaintyInMeters,occurrence_rows,events,problem
+-2147480,9,3,invalid_negative
+-2147180,1,1,invalid_negative
+-2146620,2,2,invalid_negative
+-2140550,1,1,invalid_negative
+0,13,9,zero_not_usable
