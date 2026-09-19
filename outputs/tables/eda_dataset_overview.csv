@@ -1,0 +1,6 @@
+dataset,file,rows,columns,unique_events,target_classes,predictor_columns,rows_with_environmental_NA
+frog_primary_multiclass,data/processed/frog_primary_multiclass.rds,247406,36,247406,18,30,4806
+frog_primary_predictors,data/processed/frog_primary_predictors.rds,247406,30,NA,NA,30,4806
+frog_multispecies_extension,data/processed/frog_multispecies_extension.rds,213675,38,213675,142,30,2009
+frog_multispecies_predictors,data/processed/frog_multispecies_predictors.rds,213675,30,NA,NA,30,2009
+species_metadata,data/processed/species_metadata.rds,216,18,NA,18,NA,NA
