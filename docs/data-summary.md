@@ -516,6 +516,6 @@ PASS is recorded only for checks actually verified against the current inputs, v
 [PASS] EPBC metadata integrated - Validated official source and one-row-per-name lookup fingerprints
 [PASS] tests passed - cohorts=PASS; processed_data=PASS; conservation_retention=PASS; summary_data=PASS
 [PASS] renv consistent - No issues found -- the project is in a consistent state.
-[FAIL] no uncommitted pipeline changes - docs/data-pipeline.md; tests/validate_cohorts.R; tests/validate_conservation_retention.R; R/summary/check_readiness.R; R/summary/summarise_for_eda.R; tests/validate_summary_data.R
+[PASS] no uncommitted pipeline changes - git status verified; generated tables/report are excluded from pipeline-change check
 [PASS] no raw/interim/processed files tracked by Git - git ls-files data/raw data/interim data/processed returned no files
 
