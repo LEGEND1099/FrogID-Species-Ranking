@@ -2,6 +2,7 @@
 # Raw source is kept immutable under data/raw/frogid/.
 
 source_url <- "https://d2pifd398unoeq.cloudfront.net/FrogID6_final_dataset.csv"
+source("R/source_integrity.R")
 
 output_dir <- file.path("data", "raw", "frogid")
 output_file <- file.path(output_dir, "FrogID6_final_dataset.csv")
@@ -33,6 +34,7 @@ if (is.na(size_bytes) || size_bytes <= 0) {
 }
 
 checksum <- tools::md5sum(output_file)
+verify_source(output_file)
 
 writeLines(
   paste(names(checksum), checksum),

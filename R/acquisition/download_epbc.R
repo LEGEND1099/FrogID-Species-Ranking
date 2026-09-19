@@ -1,6 +1,7 @@
 # Acquire the latest official DCCEEW/SPRAT threatened-species CSV from CKAN.
 # Reuse the frozen local snapshot unless --refresh is explicitly requested.
 suppressPackageStartupMessages(library(readr))
+source("R/source_integrity.R")
 if (!requireNamespace("jsonlite", quietly = TRUE)) {
   stop("Install jsonlite in the project renv library before acquiring EPBC data.")
 }
@@ -32,6 +33,7 @@ if (file.exists(manifest_path) && !refresh) {
   if (unname(tools::md5sum(source_path)) != manifest$md5) {
     stop("Frozen EPBC source checksum changed; investigate before rerunning.")
   }
+  verify_source(source_path)
   source <- read_source(source_path)
   message("Reusing frozen EPBC snapshot: ", manifest$resource_name)
 } else {
@@ -93,6 +95,7 @@ if (file.exists(manifest_path) && !refresh) {
   )
   write_csv(manifest, manifest_path)
 }
+verify_source(source_path)
 write_csv(manifest, file.path(table_dir, "epbc_acquisition_metadata.csv"))
 message("Validated ", nrow(source), " listed taxa; ",
         sum(source$Class == "Amphibia", na.rm = TRUE), " amphibian taxa.")

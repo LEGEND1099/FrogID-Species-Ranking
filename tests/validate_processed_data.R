@@ -3,6 +3,10 @@
 source("R/pipeline_helpers.R")
 source("R/acquisition/download_worldclim.R")
 
+# Successful evidence is only written at the end; remove stale success first.
+evidence_path <- "data/interim/validation/processed_validation.rds"
+if (file.exists(evidence_path)) unlink(evidence_path)
+
 assert <- function(condition, description) {
   if (!isTRUE(condition)) stop(description, call. = FALSE)
 }
@@ -23,6 +27,19 @@ match_ids <- function(ids, reference, label) {
   assert(!anyNA(index), paste("Unmatched eventID in", label))
   index
 }
+
+# These committed pins survive rebuilding the ignored acquisition manifests.
+source_pins <- read_csv("config/source_checksums.csv",
+                        col_types = cols(.default = col_character()))
+assert(nrow(source_pins) == 6L && !anyDuplicated(source_pins$source) &&
+         !anyDuplicated(source_pins$file) &&
+         setequal(source_pins$source, c("frogid_dataset6", "worldclim_bio",
+                                       "worldclim_elev", "worldclim_tavg",
+                                       "worldclim_prec", "epbc_sprat")),
+       "Committed source pins are incomplete or duplicated")
+assert(all(file.exists(source_pins$file)), "A pinned source file is missing")
+assert(identical(unname(tools::md5sum(source_pins$file)), source_pins$md5),
+       "A source checksum differs from the committed frozen acquisition")
 env_columns <- c(paste0("BIO", seq_len(19L)), "elevation",
                  "climatological_tavg_event_month", "climatological_prec_event_month")
 calendar_columns <- c("month", "day_of_year", "month_sin", "month_cos",
@@ -79,6 +96,11 @@ message("Checking original FrogID rows, metadata agreement, and all occurrence-l
 assert(identical(unname(tools::md5sum(raw_frogid_path)), cohort_manifest$raw_md5),
        "The original raw FrogID CSV changed after cohort construction")
 raw <- read_frogid()
+assert(nrow(raw) == 974120L && ncol(raw) == 21L &&
+         n_distinct(raw$eventID) == 542287L &&
+         n_distinct(raw$occurrenceID) == 974120L &&
+         n_distinct(raw$scientificName) == 216L,
+       "Raw Dataset 6 dimensions differ from the certified release")
 assert(nrow(raw) == cohort_manifest$raw_rows && ncol(raw) == cohort_manifest$raw_columns &&
          n_distinct(raw$eventID) == cohort_manifest$raw_events &&
          n_distinct(raw$scientificName) == cohort_manifest$raw_species,
@@ -88,6 +110,22 @@ conflicts <- event_metadata_conflicts(raw)
 assert(nrow(conflicts) == 0L, "Rows of the same event disagree on core event metadata")
 assert(nrow(read_required_rds("data/interim/frogid/event_metadata_conflicts.rds")) == 0L,
        "Saved metadata-conflict report is nonempty")
+
+# Prove completeness as well as purity: every event passing all source-row QC
+# must be retained. A dropped valid event must not silently pass validation.
+raw_dates <- as.Date(raw$eventDate, format = "%Y-%m-%d")
+source_qc <- !is.na(raw$scientificName) & nzchar(trimws(raw$scientificName)) &
+  valid_coordinates(raw$decimalLatitude, raw$decimalLongitude) &
+  valid_uncertainty(raw$coordinateUncertaintyInMeters) &
+  !is.na(raw$geoprivacy) & raw$geoprivacy == "open" &
+  !is.na(raw$dataGeneralizations) & raw$dataGeneralizations == "No data generalization" &
+  !is.na(raw_dates) & format(raw_dates, "%Y-%m-%d") == raw$eventDate
+bad_event_ids <- unique(raw$eventID[is.na(source_qc) | !source_qc])
+expected_clean_ids <- setdiff(unique(raw$eventID), bad_event_ids)
+assert(setequal(clean$eventID, expected_clean_ids),
+       "Clean events do not equal every original event whose entire occurrence set passes QC")
+assert(nrow(clean) == 519414L && nrow(primary) == 247406L && nrow(multi) == 213675L,
+       "Certified clean/primary/multispecies dimensions changed")
 
 # Checking ALL source occurrences prevents a valid representative row from
 # concealing an invalid uncertainty, privacy flag, or omitted target species.
@@ -112,6 +150,12 @@ assert(!anyNA(dates) && all(format(dates, "%Y-%m-%d") == retained$eventDate),
 
 raw_pairs <- raw |> distinct(eventID, scientificName)
 raw_event_counts <- raw_pairs |> count(eventID, name = "original_n_species")
+assert(sum(raw_event_counts$original_n_species == 1L) == 301378L &&
+         sum(raw_event_counts$original_n_species >= 2L) == 240909L &&
+         max(raw_event_counts$original_n_species) == 13L &&
+         min(raw_dates) == as.Date("2017-11-10") &&
+         max(raw_dates) == as.Date("2023-11-09"),
+       "Raw Dataset 6 dates or recording structure changed")
 clean_raw_index <- match_ids(clean$eventID, raw_event_counts$eventID, "clean source species counts")
 assert(identical(as.integer(clean$n_species),
                  as.integer(raw_event_counts$original_n_species[clean_raw_index])),
@@ -167,6 +211,9 @@ eligible_names <- expected_counts |>
   pull(scientificName)
 assert(identical(vocabulary, eligible_names) && all(cohort$threshold_used == threshold),
        "Frozen model species violate the objective threshold/top-25 selection rule")
+assert(length(vocabulary) == 18L && threshold == 2000L &&
+         identical(as.integer(cohort_manifest$threshold_used), 2000L),
+       "The objectively generated vocabulary must retain 18 classes at threshold 2000")
 assert(nrow(primary) == sum(cohort$clean_single_species_events[cohort$selected]),
        "Primary dimensions do not match frozen selected species counts")
 
@@ -182,7 +229,7 @@ for (label in c("primary", "multi")) {
   assert(inherits(x$eventDate, "Date") && !anyNA(x$eventDate),
          paste(label, "must retain valid eventDate values for later EDA"))
   assert(all(x$month == as.integer(format(x$eventDate, "%m"))) &&
-           all(x$day_of_year == as.integer(format(x$eventDate, "%j")))),
+           all(x$day_of_year == as.integer(format(x$eventDate, "%j"))),
          paste(label, "calendar fields disagree with eventDate"))
   assert(all(is.finite(as.matrix(x[, calendar_columns]))),
          paste(label, "calendar features contain nonfinite values"))
@@ -208,7 +255,7 @@ assert(identical(names(environment), c("eventID", env_columns)) &&
          nrow(environment) == nrow(clean),
        "WorldClim event features must have exactly one row per clean event and the 22 required features")
 assert(identical(environment_validation$input_md5,
-                 unname(tools::md5sum("data/interim/frogid/clean_events.rds")))) ,
+                 unname(tools::md5sum("data/interim/frogid/clean_events.rds"))),
        "WorldClim cache was built against a different clean-event source")
 assert(identical(environment_validation$eventID, environment$eventID) &&
          identical(environment_validation$feature_names, env_columns),
@@ -250,13 +297,42 @@ assert(identical(cache$raster_md5, source_hashes) &&
 assert(setequal(worldclim_manifest$variable, c("bio", "elev", "tavg", "prec")) &&
          !anyDuplicated(worldclim_manifest$variable) &&
          all(worldclim_manifest$worldclim_version == "2.1") &&
+         all(worldclim_manifest$reference_period == "1970-2000") &&
          all(worldclim_manifest$country == "AUS") &&
          all(worldclim_manifest$resolution_arcseconds == 30),
        "WorldClim provenance specifies an unexpected source, version, or resolution")
+# Use terra's bundled CRS database on Windows, as acquisition does.
+if (.Platform$OS.type == "windows") {
+  proj_directory <- system.file("proj", package = "terra")
+  gdal_directory <- system.file("gdal", package = "terra")
+  if (nzchar(proj_directory) && file.exists(file.path(proj_directory, "proj.db"))) {
+    Sys.setenv(PROJ_LIB = proj_directory, PROJ_DATA = proj_directory)
+  }
+  if (nzchar(gdal_directory)) Sys.setenv(GDAL_DATA = gdal_directory)
+}
+specification <- worldclim_specification()
+reference_raster <- NULL
 for (i in seq_len(nrow(worldclim_manifest))) {
   row <- worldclim_manifest[i, ]
-  assert(file.exists(row$file) && unname(tools::md5sum(row$file)) == row$md5,
-         paste("WorldClim source changed:", row$variable))
+  pin <- source_pins[source_pins$source == paste0("worldclim_", row$variable), ]
+  assert(row$file == pin$file && row$md5 == pin$md5 && row$source_url == pin$source_url,
+         paste("WorldClim provenance differs from committed acquisition:", row$variable))
+  raster <- terra::rast(row$file)
+  expected_layers <- specification$expected_layers[match(row$variable, specification$variable)]
+  validate_worldclim_raster(raster, row$variable, expected_layers)
+  assert(terra::nlyr(raster) == row$n_layers &&
+           identical(paste(names(raster), collapse = ";"), row$layer_names) &&
+           same_values(as.vector(terra::ext(raster)), c(112.5, 159.5, -55.5, -9)) &&
+           same_values(as.vector(terra::ext(raster)),
+                       c(row$xmin, row$xmax, row$ymin, row$ymax)) &&
+           nrow(raster) == 5580L && ncol(raster) == 5640L &&
+           nrow(raster) == row$n_rows && ncol(raster) == row$n_columns &&
+           terra::same.crs(raster, row$crs),
+         paste("WorldClim layer structure/geometry differs from certified metadata:", row$variable))
+  if (is.null(reference_raster)) reference_raster <- raster else {
+    assert(terra::compareGeom(reference_raster, raster, lyrs = FALSE, stopOnError = FALSE),
+           "WorldClim source rasters have inconsistent geometry")
+  }
 }
 for (label in c("primary", "multi")) {
   x <- get(label)
@@ -283,9 +359,9 @@ check_missingness <- function(x, label) {
          paste("Environmental missingness counts/percentages disagree with", label))
 }
 check_missingness(environment, "all_clean_events")
-# The final builder adds primary/multispecies rows to this same report.
-if ("primary_multiclass" %in% missingness$dataset) check_missingness(primary, "primary_multiclass")
-if ("multispecies_extension" %in% missingness$dataset) check_missingness(multi, "multispecies_extension")
+check_missingness(primary, "frog_primary_multiclass")
+check_missingness(multi, "frog_multispecies_extension")
+check_missingness(multi[multi$recall_at_k_eligible, ], "multispecies_recall_at_k_eligible")
 
 message("Checking conservation joins, authoritative name matches, and explicit unresolved names...")
 assert(!anyNA(species$scientificName) && !anyDuplicated(species$scientificName) &&
@@ -299,8 +375,25 @@ epbc_path <- file.path("data", "raw", "epbc", epbc_manifest$local_filename)
 assert(nrow(epbc_manifest) == 1L && file.exists(epbc_path) &&
          unname(tools::md5sum(epbc_path)) == epbc_manifest$md5,
        "Official EPBC source differs from the acquisition manifest")
-official <- read_csv(epbc_path, col_types = cols(.default = col_character()), na = c("", "-")) |>
-  filter(Class == "Amphibia")
+epbc_pin <- source_pins[source_pins$source == "epbc_sprat", ]
+public_epbc_manifest <- read_csv("outputs/tables/epbc_acquisition_metadata.csv",
+                                 col_types = cols(.default = col_character()))
+assert(identical(as.data.frame(epbc_manifest), as.data.frame(public_epbc_manifest)) &&
+         epbc_path == epbc_pin$file && epbc_manifest$md5 == epbc_pin$md5 &&
+         epbc_manifest$source_url == epbc_pin$source_url &&
+         epbc_manifest$publisher == paste0("Australian Government Department of Climate Change, ",
+                                         "Energy, the Environment and Water") &&
+         epbc_manifest$source_extracted_date == "2026-Aug-28" &&
+         !is.na(as.POSIXct(epbc_manifest$retrieved_at_utc, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")),
+       "EPBC provenance does not match the official frozen acquisition")
+official_all <- read_csv(epbc_path, col_types = cols(.default = col_character()), na = c("", "-"))
+assert(nrow(problems(official_all)) == 0L && nrow(official_all) == 2222L &&
+         nrow(official_all) == as.integer(epbc_manifest$source_rows) &&
+         sum(official_all$Class == "Amphibia", na.rm = TRUE) == 53L &&
+         sum(official_all$Class == "Amphibia", na.rm = TRUE) == as.integer(epbc_manifest$amphibian_rows) &&
+         identical(unique(na.omit(official_all[["Date extracted"]])), epbc_manifest$source_extracted_date),
+       "EPBC source rows, amphibian rows, or extraction date disagree with provenance")
+official <- official_all |> filter(Class == "Amphibia")
 normalize_name <- function(x) tolower(gsub("[[:space:]]+", " ", trimws(x)))
 matched <- which(conservation$epbc_listed %in% TRUE)
 assert(is.logical(conservation$epbc_listed) &&
@@ -343,6 +436,23 @@ for (field in c("raw_occurrence_rows", "raw_events")) {
 }
 assert(identical(unname(tools::md5sum(raw_frogid_path)), cohort_manifest$raw_md5),
        "The raw FrogID source changed during validation")
+artifact_paths <- c(
+  list.files("data/processed", pattern = "[.]rds$", full.names = TRUE),
+  list.files("data/interim/frogid", pattern = "[.]rds$", full.names = TRUE),
+  list.files("data/interim/environmental", pattern = "[.]rds$", full.names = TRUE),
+  "data/interim/epbc/species_conservation.rds",
+  "data/raw/worldclim/acquisition_manifest.rds", "data/raw/epbc/source_manifest.csv",
+  "outputs/tables/species_cohort.csv", "outputs/tables/environmental_missingness.csv")
+validation_script_paths <- c(list.files("R", pattern = "[.]R$", recursive = TRUE,
+                                        full.names = TRUE),
+                             "tests/validate_cohorts.R", "tests/validate_processed_data.R",
+                             "config/source_checksums.csv")
+dir.create(dirname(evidence_path), recursive = TRUE, showWarnings = FALSE)
+saveRDS(list(test = "tests/validate_processed_data.R", passed = TRUE,
+             passed_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+             source_md5 = stats::setNames(source_pins$md5, source_pins$file),
+             artifact_md5 = tools::md5sum(artifact_paths),
+             script_md5 = tools::md5sum(validation_script_paths)), evidence_path)
 message(sprintf(paste0("Final validation passed: primary %s x %s; multispecies %s x %s; ",
                        "species metadata %s x %s; 30 predictors; %s selected species. ",
                        "No rows multiplied, raw source unchanged, no raster extraction repeated."),

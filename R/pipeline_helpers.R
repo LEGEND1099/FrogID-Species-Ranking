@@ -6,8 +6,10 @@ suppressPackageStartupMessages({
 })
 
 raw_frogid_path <- "data/raw/frogid/FrogID6_final_dataset.csv"
+source("R/source_integrity.R")
 
 read_frogid <- function(path = raw_frogid_path) {
+  verify_source(path)
   x <- read_csv(path, col_types = cols(.default = col_character(),
     decimalLatitude = col_double(), decimalLongitude = col_double(),
     coordinateUncertaintyInMeters = col_double()), progress = FALSE)

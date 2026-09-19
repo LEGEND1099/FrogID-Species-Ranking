@@ -121,6 +121,45 @@ representation; objective class selection will not be overridden for a
 conservation narrative. EPBC status is evaluation metadata, not a feature, and
 current status may differ from status at recording time.
 
-IBRA is optional future context. It will be skipped if it risks delaying the
-core dataset. No BOM, ALA occurrence data, SoilGrids, satellite/audio processing,
+IBRA is outside this project scope. No BOM, ALA occurrence data, SoilGrids, satellite/audio processing,
 range-map predictors, EDA or models are included.
+
+## Validation and immutable inputs
+
+The preserved integration was resumed from `4d9c139` on `data-integration`.
+All five processed RDS files and required cohort, environmental and EPBC interim
+artifacts were present. `config/source_checksums.csv` pins the original FrogID,
+four WorldClim TIFFs and official EPBC CSV independently of regenerated manifests.
+Acquisition and validation reject changed sources; updating a checksum requires
+an explicit, reviewed source revision rather than silently accepting a new file.
+
+The final validator checks every retained original occurrence, proves the clean
+event set equals all events satisfying the rules, regenerates objective species
+selection, checks original multi-species lists, verifies source raster geometry
+and all event-month mappings, and audits conservation joins and the 30-column
+predictor whitelist. All cohort missingness tables are mandatory. Successful
+tests save local evidence with script and artifact fingerprints under ignored
+`data/interim/validation/`, so later readiness checks can reject stale results.
+
+### Checkpoint 1 certification
+
+Validated at 2026-09-19T07:55:24Z (UTC). Both tests/validate_cohorts.R and
+ tests/validate_processed_data.R passed after repairing two preserved validator
+syntax errors and making all cohort missingness checks mandatory. The source
+cohorts and integrations themselves required no regeneration. Final dimensions:
+
+| Dataset | Rows | Columns |
+| --- | ---: | ---: |
+| Clean events | 519414 | 17 |
+| frog_primary_multiclass | 247406 | 36 |
+| frog_primary_predictors | 247406 | 30 |
+| frog_multispecies_extension | 213675 | 38 |
+| frog_multispecies_predictors | 213675 | 30 |
+| species_metadata | 216 | 18 |
+
+The 18 classes still follow the >=2000 clean single-species-event rule.
+All 371054 clean coordinates map uniquely to the cached 44-layer extraction.
+Environmental missingness remains 7633 all-clean, 4806 primary and 2009
+multispecies events; none was dropped. All six source checksums, official EPBC
+source-row matches, unique event joins and the predictor exclusions passed.
+Raw/interim/processed paths are ignored and contain no Git-tracked files.

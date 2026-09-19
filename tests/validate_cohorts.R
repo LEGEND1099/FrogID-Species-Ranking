@@ -27,3 +27,12 @@ stopifnot(!anyDuplicated(clean$eventID), all(valid_uncertainty(clean$coordinateU
           identical(multi$recall_at_k_eligible, multi$all_species_in_vocabulary),
           !any(primary$eventID %in% multi$eventID))
 message("Cohort validation passed.")
+dir.create("data/interim/validation", recursive = TRUE, showWarnings = FALSE)
+saveRDS(list(test = "tests/validate_cohorts.R",
+             passed_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+             artifact_md5 = tools::md5sum(c("data/interim/frogid/clean_events.rds",
+               "data/interim/frogid/primary_cohort.rds", "data/interim/frogid/multispecies_cohort.rds",
+               "data/interim/frogid/cohort_manifest.rds")),
+             script_md5 = tools::md5sum(c("tests/validate_cohorts.R", "R/pipeline_helpers.R",
+               "R/cleaning/build_cohorts.R", "R/source_integrity.R"))),
+        "data/interim/validation/cohort_validation.rds")

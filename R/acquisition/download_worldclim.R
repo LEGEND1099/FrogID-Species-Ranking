@@ -1,5 +1,6 @@
 # Country-specific WorldClim 2.1, exactly 30 arc-seconds. Run from repo root.
 # Sourceable: the integration script reuses acquisition and validation functions.
+source("R/source_integrity.R")
 
 worldclim_specification <- function() {
   data.frame(variable = c("bio", "elev", "tavg", "prec"),
@@ -52,6 +53,7 @@ acquire_worldclim <- function() {
     variable <- spec$variable[i]
     filename <- worldclim_filename(variable)
     already_present <- file.exists(filename)
+    if (already_present) verify_source(filename)
     message("Loading/acquiring WorldClim AUS 2.1 30s: ", variable)
     r <- geodata::worldclim_country(
       country = "AUS", var = variable, path = raw_dir, version = "2.1",
@@ -62,6 +64,7 @@ acquire_worldclim <- function() {
            ". No alternative resolution will be substituted.")
     }
     validate_worldclim_raster(r, variable, spec$expected_layers[i])
+    verify_source(filename)
     raster_extent <- as.vector(terra::ext(r))
     checksum <- unname(tools::md5sum(filename))
     old <- if (!is.null(previous)) previous[previous$variable == variable, ] else NULL
