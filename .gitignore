@@ -21,13 +21,20 @@ renv/staging/
 renv/sandbox/
 
 # ============================================================
-# RAW AND GENERATED DATA
+# RAW / INTERIM DATA
 # ============================================================
+# Raw sources and intermediate/cache objects are reproducible from the
+# canonical data-preparation pipeline and are intentionally not versioned.
 data/raw/
 data/interim/
-data/processed/
 
-# Large spatial / raster files
+# Ignore everything in processed by default, then explicitly allow the
+# final frozen RDS analysis datasets below.
+data/processed/*
+
+# ============================================================
+# LARGE SPATIAL / RASTER FILES
+# ============================================================
 *.tif
 *.tiff
 *.grd
@@ -38,11 +45,16 @@ data/processed/
 *.dbf
 *.prj
 
-# Large data formats
+# ============================================================
+# LARGE DATA FORMATS
+# ============================================================
 *.rds
 *.RData
 *.parquet
 *.feather
+
+# Final processed analysis datasets are shared with the team.
+!data/processed/*.rds
 
 # ============================================================
 # QUARTO
