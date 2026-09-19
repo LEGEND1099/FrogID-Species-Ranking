@@ -1,0 +1,8 @@
+stage,events_remaining,events_excluded,retained_percent_of_raw,excluded_percent_of_raw,excluded_percent_of_previous
+raw_events,542287,0,100,0,0
+complete_species,542287,0,100,0,0
+valid_coordinates,542287,0,100,0,0
+positive_uncertainty_at_most_1000m,519414,22873,95.78212275049927,4.2178772495007255,4.2178772495007255
+open_geoprivacy,519414,0,95.78212275049927,0,0
+no_data_generalization,519414,0,95.78212275049927,0,0
+valid_event_date,519414,0,95.78212275049927,0,0

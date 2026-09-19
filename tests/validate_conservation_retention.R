@@ -1,5 +1,7 @@
 # Independently reconcile the public aggregates with original occurrence sets.
 source("R/pipeline_helpers.R")
+evidence_path <- "data/interim/validation/conservation_validation.rds"
+if (file.exists(evidence_path)) unlink(evidence_path)
 raw <- read_frogid()
 clean <- readRDS("data/interim/frogid/clean_events.rds")
 lookup <- readRDS("data/interim/epbc/species_conservation.rds")
@@ -103,3 +105,12 @@ for (x in list(species, category, exclusions)) {
                                 "decimalLatitude", "decimalLongitude")))
 }
 message("Conservation retention validation passed: species counts, category event unions, percentages, source lookup and non-sensitive schemas.")
+dir.create(dirname(evidence_path), recursive = TRUE, showWarnings = FALSE)
+saveRDS(list(test = "tests/validate_conservation_retention.R", passed = TRUE,
+  passed_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+  artifact_md5 = tools::md5sum(c(raw_frogid_path, "data/interim/frogid/clean_events.rds",
+    "data/interim/epbc/species_conservation.rds", "outputs/tables/qc_filter_flow.csv",
+    list.files("outputs/tables", pattern = "^conservation_.*[.]csv$", full.names = TRUE))),
+  script_md5 = tools::md5sum(c("tests/validate_conservation_retention.R",
+    "R/summary/build_conservation_retention.R", "R/pipeline_helpers.R",
+    "R/source_integrity.R", "config/source_checksums.csv"))), evidence_path)

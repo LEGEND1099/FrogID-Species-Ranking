@@ -1,4 +1,6 @@
 source("R/pipeline_helpers.R")
+evidence_path <- "data/interim/validation/cohort_validation.rds"
+if (file.exists(evidence_path)) unlink(evidence_path)
 stopifnot(identical(valid_uncertainty(c(-2147480, -1, 0, NA, Inf, 1, 1000, 1001)),
                     c(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE)))
 stopifnot(identical(valid_coordinates(c(0, NA, 91, 10), c(0, 10, 20, Inf)), c(TRUE, FALSE, FALSE, FALSE)))

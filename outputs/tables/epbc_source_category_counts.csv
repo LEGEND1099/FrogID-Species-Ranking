@@ -1,0 +1,11 @@
+source_scope,epbc_category,taxa
+all_source_taxa,Conservation Dependent,7
+all_source_taxa,Critically Endangered,458
+all_source_taxa,Endangered,870
+all_source_taxa,Extinct,102
+all_source_taxa,Extinct in the wild,1
+all_source_taxa,Vulnerable,784
+amphibian_taxa,Critically Endangered,18
+amphibian_taxa,Endangered,15
+amphibian_taxa,Extinct,4
+amphibian_taxa,Vulnerable,16

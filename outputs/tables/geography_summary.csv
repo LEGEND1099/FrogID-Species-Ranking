@@ -1,0 +1,4 @@
+dataset,events,unique_coordinates,min_latitude_broad,max_latitude_broad,min_longitude_broad,max_longitude_broad
+clean,519414,371054,-44,-9,113,160
+primary,247406,188075,-44,-9,113,154
+multispecies,213675,155416,-44,-10,114,154

@@ -221,3 +221,35 @@ are excluded, leaving 519,414 (95.7821227505%). These are preparation counts,
 not a causal estimate of privacy effects. The conservation question can be
 examined through retention aggregates; threatened-class predictive performance
 cannot be evaluated from the current selected cohort.
+
+## EDA handoff report
+
+`Rscript R/summary/summarise_for_eda.R` reads the final raw, interim and processed
+objects, writes `docs/data-summary.md` and public tables under `outputs/tables/`,
+and prints the complete Markdown report to the console. It computes only the
+requested preparation descriptives: class sizes, date/state/event structure,
+numeric feature summaries, missingness, provenance and inventory. It does not
+balance classes, impute, scale, remove correlated predictors, fit models or
+perform exploratory hypothesis analysis.
+
+The generator runs `tests/validate_summary_data.R` against its aggregate tables
+before writing the final checklist. Checklist PASS values require current
+artifact/script fingerprints from successful cohort, processed, conservation
+and summary tests; six matching source checksums; a synchronized `renv`; and
+live Git checks. Failed or stale evidence is reported as FAIL. Test evidence
+stays local in `data/interim/validation/` and is regenerated on reproduction.
+
+The Git checklist entry means no uncommitted source/configuration/documentation
+changes, excluding the generated report and tables themselves. Report generation
+can change those derived outputs, which must subsequently be committed. A
+separate final `git status` establishes that the entire working tree is clean.
+The report's certification timestamp records validated evidence rather than
+changing on every harmless report rerun.
+
+During development, the readiness report can legitimately show FAIL for
+`no uncommitted pipeline changes` while a checkpoint's source or validation
+files have not yet been committed. This does not indicate a data-validation
+failure. After the checkpoint is committed, rerunning
+`R/summary/summarise_for_eda.R` regenerates the summary validation evidence and
+the live Git-based readiness checklist. A fully certified EDA handoff therefore
+requires both successful validation and a clean committed pipeline state.
