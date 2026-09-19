@@ -6,19 +6,36 @@ repository root, using its `.Rprofile` and `renv` library.
 
 ## Reproduce
 
-```r
-renv::restore(prompt = FALSE)
-source("R/acquisition/download_frogid.R") # reuses existing immutable CSV
-source("R/cleaning/build_cohorts.R")
-source("tests/validate_cohorts.R")
+From the repository root, restore the frozen R environment and run the
+canonical preparation pipeline:
+
+```sh
+Rscript -e "renv::restore(prompt = FALSE)"
+Rscript R/run_data_preparation.R
 ```
 
-Subsequent integration commands and final dimensions are documented as each
-integration is validated. `R/setup_environment.R` installs only required direct
-dependencies and snapshots the project. Downloads and RDS files stay under
-ignored `data/raw/`, `data/interim/`, and `data/processed/`; only code, provenance,
-and aggregate QC summaries are committed. No event coordinates, recording IDs,
-or observer identifiers are published in the summary tables.
+`R/run_data_preparation.R` is the single end-to-end entry point. It:
+
+1. acquires or verifies the immutable FrogID Dataset 6 source;
+2. rebuilds and validates the event-level FrogID cohorts;
+3. acquires/verifies WorldClim 2.1 and integrates environmental context;
+4. acquires/verifies the frozen official EPBC/SPRAT source;
+5. integrates conservation metadata after the species vocabulary is frozen;
+6. materialises the final labelled datasets and 30-column predictor matrices;
+7. independently validates the complete processed data;
+8. builds and validates conservation/geoprivacy retention aggregates; and
+9. generates and validates the EDA-readiness handoff.
+
+A validated WorldClim coordinate cache is reused when the clean coordinates
+and source-raster fingerprints are unchanged, so reruns do not repeat the
+371,054-coordinate raster extraction unnecessarily.
+
+`R/setup_environment.R` installs only required direct dependencies and
+snapshots the project. Downloads and RDS files stay under ignored
+`data/raw/`, `data/interim/`, and `data/processed/`; only code, provenance,
+aggregate QC summaries and non-sensitive handoff outputs are committed.
+No event coordinates, recording IDs, or observer identifiers are published
+in the summary tables.
 
 ## Source and statistical unit
 
@@ -253,3 +270,44 @@ failure. After the checkpoint is committed, rerunning
 `R/summary/summarise_for_eda.R` regenerates the summary validation evidence and
 the live Git-based readiness checklist. A fully certified EDA handoff therefore
 requires both successful validation and a clean committed pipeline state.
+
+## End-to-end reproducibility certification
+
+The canonical `R/run_data_preparation.R` pipeline was executed successfully
+from the repository root on 2026-09-19.
+
+All 11 preparation stages completed without error. The run verified the
+existing immutable FrogID source rather than redownloading it, rebuilt the
+event cohorts from 974,120 original occurrence rows, and reproduced 519,414
+clean events, 247,406 primary multiclass events, 213,675 relevant
+multi-species events, 127,322 Recall@k-eligible multi-species events,
+18 selected target species and exactly 30 whitelisted predictors.
+
+WorldClim acquisition verified all 44 source layers and reused the validated
+371,054-coordinate extraction cache. No raster extraction was repeated.
+EPBC acquisition reused the frozen official SPRAT snapshot and reproduced
+24 confirmed listed FrogID taxa, with no confirmed listed taxon surviving
+the strict public-coordinate whole-event QC.
+
+The following independent validation stages all passed during the same run:
+
+- `tests/validate_cohorts.R`
+- `tests/validate_processed_data.R`
+- `tests/validate_conservation_retention.R`
+- `tests/validate_summary_data.R`
+
+The processed-data validator confirmed that no rows were multiplied, the raw
+FrogID source remained unchanged, the environmental extraction was not
+repeated, and the final primary and multi-species datasets retained their
+certified dimensions.
+
+After the run, `renv::snapshot(prompt = FALSE)` reported that the lockfile was
+already up to date and `renv::status()` reported no issues. `git diff --check`
+reported no whitespace errors, and `git ls-files data/raw data/interim
+data/processed` returned no tracked files.
+
+The only readiness failure during this certification run was the expected
+Git-cleanliness check because `R/run_data_preparation.R` itself was being
+updated and had not yet been committed. After committing the certified runner,
+the EDA summary/readiness report must be regenerated once more against the
+clean pipeline state.
