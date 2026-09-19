@@ -1,0 +1,4 @@
+conservation_group,epbc_category,species_count,raw_occurrence_rows,clean_occurrence_rows,raw_events,clean_events,raw_single_species_events,clean_single_species_events,retention_percent,selected_species_count,event_counting
+confirmed_EPBC_listed,Endangered,12,3212,0,3212,0,494,0,0,0,distinct_event_union_within_category; categories_may_overlap
+confirmed_EPBC_listed,Vulnerable,12,3559,0,3545,0,1133,0,0,0,distinct_event_union_within_category; categories_may_overlap
+not_confirmed_listed_or_unresolved,not_confirmed_listed_or_unresolved,192,967349,925809,540647,519414,299751,291103,96.0726684879413,18,distinct_event_union_within_category; categories_may_overlap

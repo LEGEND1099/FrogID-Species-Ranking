@@ -163,3 +163,61 @@ Environmental missingness remains 7633 all-clean, 4806 primary and 2009
 multispecies events; none was dropped. All six source checksums, official EPBC
 source-row matches, unique event joins and the predictor exclusions passed.
 Raw/interim/processed paths are ignored and contain no Git-tracked files.
+
+## Conservation and geoprivacy retention preparation
+
+`Rscript R/summary/build_conservation_retention.R` reads original occurrences,
+the clean event IDs and the authoritative EPBC name lookup. It creates four
+non-sensitive aggregate tables:
+
+- `conservation_species_retention.csv`: one row per supplied scientific name,
+  original/clean occurrences and events, original/clean single-species events,
+  independently eligible open-location and precision events, model selection,
+  exact matched EPBC category and retention percentages. Zero denominators
+  yield NA.
+- `conservation_category_retention.csv`: distinct event unions within each
+  confirmed official category or the unresolved group, plus species counts.
+- `conservation_group_retention.csv`: distinct event unions for all recordings,
+  confirmed listed taxa and names not confirmed listed or unresolved.
+- `conservation_qc_exclusion_summary.csv`: both sequential exclusions matching
+  `qc_filter_flow.csv` and independent, explicitly non-exclusive reason counts.
+
+An event belongs to a category/scope if any of its original species belongs.
+Mixed recordings can belong to several categories/scopes, so those rows must
+not be summed to obtain an overall event total. Species-level event totals also
+count a mixed recording once for each detected taxon. The all-events scope is
+the deduplicated overall denominator. Open-location and precision eligibility
+are independent checks, not cumulative stages; complete clean eligibility
+requires every original occurrence to pass every rule.
+
+For QC summaries, independent occurrence counts count directly failing source
+rows within the scope's events, including co-detected taxa. Sequential occurrence
+counts count all rows belonging to events removed at that stage. These bases
+are labelled in the CSV. Negative and zero uncertainty are separate diagnostic
+subsets of nonpositive uncertainty and must not be added to that combined row.
+Privacy, generalisation and excessive uncertainty can overlap completely;
+zero additional sequential privacy exclusions does not mean privacy had no
+effect. Whole-event exclusion preserves complete species lists.
+
+`tests/validate_conservation_retention.R` independently reconstructs the species
+counts, category event unions, every exclusion reason/scope and all-events
+sequential flow from original rows. No event/observer identifiers or point
+coordinates are written to these public tables. An unmatched threatened-list
+name remains `epbc_listed = NA`, never confirmed non-threatened.
+
+The prepared aggregates contain 24 confirmed listed taxa (12 Endangered and
+12 Vulnerable), with 6,771 focal-taxon occurrence rows across 6,749 distinct
+recordings, including 1,627 single-species recordings. All 6,749 are obscured,
+generalised and above the uncertainty threshold; none survives QC or enters
+the selected vocabulary. Endangered recordings number 3,212 and Vulnerable
+recordings 3,545, with eight shared events; their sum is not the listed union.
+The 192 other names remain not confirmed listed or unresolved.
+
+Across the entire source, negative uncertainty affects 13 rows/7 events, zero
+affects 13 rows/9 events, and uncertainty >1,000 m affects 48,285 rows/22,857
+events. Obscured and generalised locations each affect 25,185 rows/10,582 events,
+already included in the excessive-uncertainty exclusions. Exactly 22,873 events
+are excluded, leaving 519,414 (95.7821227505%). These are preparation counts,
+not a causal estimate of privacy effects. The conservation question can be
+examined through retention aggregates; threatened-class predictive performance
+cannot be evaluated from the current selected cohort.
