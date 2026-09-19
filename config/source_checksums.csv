@@ -1,0 +1,7 @@
+source,file,md5,source_url
+frogid_dataset6,data/raw/frogid/FrogID6_final_dataset.csv,fcd09f3c324985415850db718ca80535,https://d2pifd398unoeq.cloudfront.net/FrogID6_final_dataset.csv
+worldclim_bio,data/raw/worldclim/climate/wc2.1_country/AUS_wc2.1_30s_bio.tif,43ce12f88e87ffd56f4319c8bf6f8d7b,https://geodata.ucdavis.edu/climate/worldclim/2_1/tiles/iso/AUS_wc2.1_30s_bio.tif
+worldclim_elev,data/raw/worldclim/climate/wc2.1_country/AUS_wc2.1_30s_elev.tif,f9f0b151c68b0293ce007c4ca479bed3,https://geodata.ucdavis.edu/climate/worldclim/2_1/tiles/iso/AUS_wc2.1_30s_elev.tif
+worldclim_tavg,data/raw/worldclim/climate/wc2.1_country/AUS_wc2.1_30s_tavg.tif,ffecdc4a0ea3ef6a9d47c428d82410f2,https://geodata.ucdavis.edu/climate/worldclim/2_1/tiles/iso/AUS_wc2.1_30s_tavg.tif
+worldclim_prec,data/raw/worldclim/climate/wc2.1_country/AUS_wc2.1_30s_prec.tif,7d1c313faadb7c3b28f670cb49cf1d8f,https://geodata.ucdavis.edu/climate/worldclim/2_1/tiles/iso/AUS_wc2.1_30s_prec.tif
+epbc_sprat,data/raw/epbc/20260828spcs.csv,acfa6eb9893fea4b1141a8c28d30367c,https://data.gov.au/data/dataset/ae652011-f39e-4c6c-91b8-1dc2d2dfee8f/resource/78401dce-1f40-49d3-92c4-3713d6e34974/download/20260828spcs.csv

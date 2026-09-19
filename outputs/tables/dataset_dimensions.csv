@@ -1,0 +1,7 @@
+dataset,rows,columns,unit
+frog_primary_multiclass,247406,36,selected clean single-species recording
+frog_multispecies_extension,213675,38,clean multi-species recording with selected-species overlap
+species_metadata,216,18,raw scientific name
+frog_primary_predictors,247406,30,"primary recording, predictors only"
+frog_multispecies_predictors,213675,30,"extension recording, predictors only"
+multispecies_recall_at_k_eligible,127322,38,all original species in vocabulary

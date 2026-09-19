@@ -1,0 +1,12 @@
+check,status,detail
+raw data present,PASS,data/raw/frogid/FrogID6_final_dataset.csv
+checksums validated,PASS,Six source files compared to committed MD5 pins
+processed primary data present,PASS,Primary RDS and aligned 30-column predictor RDS
+processed multispecies data present,PASS,Extension RDS and aligned predictor RDS
+species metadata present,PASS,One metadata row per original scientific name
+WorldClim integrated,PASS,Validated source/cache/event mapping fingerprints
+EPBC metadata integrated,PASS,Validated official source and one-row-per-name lookup fingerprints
+tests passed,PASS,cohorts=PASS; processed_data=PASS; conservation_retention=PASS; summary_data=PASS
+renv consistent,PASS,No issues found -- the project is in a consistent state.
+no uncommitted pipeline changes,PASS,git status verified; generated tables/report are excluded from pipeline-change check
+no raw/interim/processed files tracked by Git,PASS,git ls-files data/raw data/interim data/processed returned no files

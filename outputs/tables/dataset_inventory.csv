@@ -1,0 +1,6 @@
+dataset,rows,columns,unit,target,number_of_classes,predictor_count,date_min,date_max,missing_rows,purpose,missingness_basis
+frog_primary_multiclass,247406,36,one clean single-species recording event,scientificName,18,30,2017-11-10,2023-11-09,4806,primary 18-class classification,at_least_one_environmental_feature_missing
+frog_primary_predictors,247406,30,primary recording; row-aligned predictors,NA,18,30,2017-11-10,2023-11-09,4806,predictors only; target in aligned primary dataset,at_least_one_environmental_feature_missing
+frog_multispecies_extension,213675,38,clean recording with >=2 original species and >=1 selected species,species_list,18,30,2017-11-10,2023-11-09,2009,future Top-k / Recall@k evaluation,at_least_one_environmental_feature_missing
+frog_multispecies_predictors,213675,30,extension recording; row-aligned predictors,NA,18,30,2017-11-10,2023-11-09,2009,predictors only; targets in aligned extension dataset,at_least_one_environmental_feature_missing
+species_metadata,216,18,one supplied raw scientific name,NA,NA,0,NA,NA,192,"taxonomy/cohort/conservation lookup; 216 names, 18 selected",unresolved_or_not_confirmed_EPBC_listing

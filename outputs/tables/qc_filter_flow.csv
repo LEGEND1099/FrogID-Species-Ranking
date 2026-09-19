@@ -1,0 +1,13 @@
+stage,events_remaining,events_excluded
+raw_events,542287,0
+complete_species,542287,0
+valid_coordinates,542287,0
+positive_uncertainty_at_most_1000m,519414,22873
+open_geoprivacy,519414,0
+no_data_generalization,519414,0
+valid_event_date,519414,0
+clean_single_species_events,291103,NA
+selected_primary_events,247406,NA
+clean_multispecies_events,228311,NA
+selected_relevant_multispecies_events,213675,NA
+recall_at_k_eligible_multispecies_events,127322,NA

@@ -1,0 +1,4 @@
+scope,species_count,raw_occurrence_rows,clean_occurrence_rows,raw_events,clean_events,raw_single_species_events,clean_single_species_events,retention_percent,selected_species_count,event_counting
+all_events,216,974120,925809,542287,519414,301378,291103,95.78212275049927,18,distinct_event_union_within_scope; scopes_may_overlap
+confirmed_EPBC_listed,24,6771,0,6749,0,1627,0,0,0,distinct_event_union_within_scope; scopes_may_overlap
+not_confirmed_listed_or_unresolved,192,967349,925809,540647,519414,299751,291103,96.0726684879413,18,distinct_event_union_within_scope; scopes_may_overlap

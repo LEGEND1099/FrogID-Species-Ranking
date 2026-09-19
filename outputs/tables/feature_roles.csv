@@ -1,0 +1,43 @@
+column,role,interpretation
+decimalLatitude,predictor,public un-generalised latitude
+decimalLongitude,predictor,public un-generalised longitude
+month,predictor,calendar feature from supplied eventDate
+day_of_year,predictor,calendar feature from supplied eventDate
+month_sin,predictor,calendar feature from supplied eventDate
+month_cos,predictor,calendar feature from supplied eventDate
+day_of_year_sin,predictor,calendar feature from supplied eventDate
+day_of_year_cos,predictor,calendar feature from supplied eventDate
+BIO1,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO2,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO3,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO4,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO5,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO6,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO7,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO8,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO9,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO10,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO11,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO12,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO13,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO14,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO15,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO16,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO17,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO18,predictor,WorldClim 2.1 climatology (1970-2000)
+BIO19,predictor,WorldClim 2.1 climatology (1970-2000)
+elevation,predictor,WorldClim elevation (metres)
+climatological_tavg_event_month,predictor,1970-2000 climatological mean temperature for recording month (degrees C)
+climatological_prec_event_month,predictor,1970-2000 climatological precipitation for recording month (mm)
+scientificName,target_or_target_metadata,excluded from predictor matrices
+species_list,target_or_target_metadata,excluded from predictor matrices
+selected_species_list,target_or_target_metadata,excluded from predictor matrices
+eventID,identifier,excluded from predictor matrices
+eventDate,audit_date,excluded from predictor matrices
+epbc_listed,evaluation_metadata,excluded from predictor matrices
+epbc_category,evaluation_metadata,excluded from predictor matrices
+epbc_match_status,evaluation_metadata,excluded from predictor matrices
+n_species,evaluation_metadata,excluded from predictor matrices
+n_selected_species,evaluation_metadata,excluded from predictor matrices
+all_species_in_vocabulary,evaluation_metadata,excluded from predictor matrices
+recall_at_k_eligible,evaluation_metadata,excluded from predictor matrices
