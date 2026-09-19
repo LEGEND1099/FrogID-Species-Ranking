@@ -1,6 +1,6 @@
 # FrogID STAT5003 data summary
 This reproducible handoff certifies data preparation and supplies the requested descriptive aggregates for future EDA. No EDA plots, statistical models, machine-learning models, imputation, scaling, class balancing, or correlated-feature removal have been performed.
-Processed validation timestamp (UTC): **2026-09-19T09:12:59Z**. Readiness checks at the end are evaluated against the current files and Git state.
+Processed validation timestamp (UTC): **2026-09-19T10:04:10Z**. Readiness checks at the end are evaluated against the current files and Git state.
 Research framing: "To what extent can environmental, seasonal and geographic context rank Australian frog species detected in FrogID recordings, and how do public geoprivacy protections constrain the applicability of such models to threatened species?"
 
 ## SOURCE / PROVENANCE
@@ -42,7 +42,7 @@ Variables: BIO1-BIO19 (19 layers), elevation (1), monthly mean temperature/tavg 
 | elev | 2.1 | 1970-2000 | AUS | 30 | 1 | 2026-09-18T23:22:33Z |
 | tavg | 2.1 | 1970-2000 | AUS | 30 | 12 | 2026-09-18T23:22:38Z |
 | prec | 2.1 | 1970-2000 | AUS | 30 | 12 | 2026-09-18T23:22:43Z |
-Extraction used one row per unique clean coordinate: **371,054 coordinates**, mapped to **519,414 events**. Cache verification compares exact coordinates, layer structure and source checksums. Latest integration reused the validated cache: **no (cache was created)**.
+Extraction used one row per unique clean coordinate: **371,054 coordinates**, mapped to **519,414 events**. Cache verification compares exact coordinates, layer structure and source checksums. Latest integration reused the validated cache: **yes**.
 WorldClim provides climatology, not weather observed on the recording date. Source temperature values retain WorldClim 2.1 published units; no legacy temperature rescaling or raster interpolation is applied. [Source details and units](worldclim-source.md).
 
 ### EPBC
