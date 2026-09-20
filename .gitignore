@@ -25,6 +25,7 @@ renv/sandbox/
 # ============================================================
 # Raw sources and intermediate/cache objects are reproducible from the
 # canonical data-preparation pipeline and are intentionally not versioned.
+/info/
 data/raw/
 data/interim/
 
