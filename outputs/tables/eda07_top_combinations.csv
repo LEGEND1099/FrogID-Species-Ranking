@@ -1,0 +1,61 @@
+combination_type,combination,n_species,events,eligible_events,percent_of_extension
+all_detected_species,Crinia signifera + Limnodynastes peronii,2,10524,10524,4.925236925236925
+all_detected_species,Crinia signifera + Limnodynastes tasmaniensis,2,7965,7965,3.727623727623728
+all_detected_species,Crinia signifera + Litoria ewingii,2,7642,7642,3.5764595764595764
+all_detected_species,Crinia signifera + Litoria verreauxii,2,5288,5288,2.474786474786475
+all_detected_species,Crinia signifera + Limnodynastes dumerilii,2,5109,5109,2.391014391014391
+all_detected_species,Limnodynastes peronii + Litoria fallax,2,4786,4786,2.23985023985024
+all_detected_species,Limnodynastes peronii + Litoria peronii,2,4731,4731,2.2141102141102142
+all_detected_species,Crinia georgiana + Crinia glauerti,2,4615,4615,2.1598221598221596
+all_detected_species,Crinia parinsignifera + Crinia signifera,2,4350,4350,2.035802035802036
+all_detected_species,Litoria fallax + Litoria peronii,2,4088,4088,1.9131859131859132
+all_detected_species,Crinia parinsignifera + Crinia signifera + Limnodynastes tasmaniensis,3,3220,3220,1.506961506961507
+all_detected_species,Crinia signifera + Limnodynastes dumerilii + Limnodynastes tasmaniensis,3,2802,2802,1.3113373113373112
+all_detected_species,Crinia parinsignifera + Limnodynastes tasmaniensis,2,2711,2711,1.2687492687492687
+all_detected_species,Limnodynastes dumerilii + Limnodynastes tasmaniensis,2,1963,1963,0.9186849186849186
+all_detected_species,Litoria fallax + Litoria peronii + Litoria tyleri,3,1947,0,0.9111969111969112
+all_detected_species,Limnodynastes peronii + Limnodynastes tasmaniensis,2,1837,1837,0.8597168597168597
+all_detected_species,Adelotus brevis + Limnodynastes peronii,2,1820,1820,0.8517608517608518
+all_detected_species,Crinia signifera + Limnodynastes peronii + Limnodynastes tasmaniensis,3,1557,1557,0.7286767286767287
+all_detected_species,Crinia signifera + Litoria peronii,2,1474,1474,0.6898326898326899
+all_detected_species,Crinia glauerti + Litoria adelaidensis,2,1469,0,0.6874926874926874
+all_detected_species,Limnodynastes peronii + Litoria fallax + Litoria peronii,3,1447,1447,0.6771966771966772
+all_detected_species,Litoria adelaidensis + Litoria moorei,2,1377,0,0.6444366444366444
+all_detected_species,Litoria caerulea + Litoria gracilenta,2,1367,1367,0.6397566397566398
+all_detected_species,Crinia signifera + Limnodynastes tasmaniensis + Litoria ewingii,3,1145,1145,0.5358605358605358
+all_detected_species,Crinia signifera + Litoria fallax,2,1072,1072,0.5016965016965017
+all_detected_species,Crinia signifera + Limnodynastes dumerilii + Litoria ewingii,3,988,988,0.4623844623844624
+all_detected_species,Crinia signifera + Limnodynastes peronii + Litoria verreauxii,3,987,987,0.4619164619164619
+all_detected_species,Litoria fallax + Litoria tyleri,2,963,0,0.4506844506844507
+all_detected_species,Limnodynastes peronii + Litoria gracilenta,2,941,941,0.4403884403884404
+all_detected_species,Adelotus brevis + Litoria fallax,2,937,937,0.4385164385164385
+target_species_only,Crinia signifera + Limnodynastes peronii,2,11733,10524,5.491049491049491
+target_species_only,Litoria fallax + Litoria peronii,2,9299,4088,4.351936351936352
+target_species_only,Crinia signifera + Limnodynastes tasmaniensis,2,8534,7965,3.993915993915994
+target_species_only,Crinia signifera + Litoria ewingii,2,7881,7642,3.688311688311688
+target_species_only,Limnodynastes peronii + Litoria fallax,2,7294,4786,3.4135954135954134
+target_species_only,Crinia georgiana + Crinia glauerti,2,5902,4615,2.762138762138762
+target_species_only,Crinia signifera + Litoria verreauxii,2,5893,5288,2.757926757926758
+target_species_only,Crinia signifera,1,5791,0,2.71019071019071
+target_species_only,Limnodynastes peronii + Litoria peronii,2,5419,4731,2.536094536094536
+target_species_only,Crinia signifera + Limnodynastes dumerilii,2,5384,5109,2.51971451971452
+target_species_only,Litoria caerulea,1,4950,0,2.3166023166023164
+target_species_only,Litoria fallax,1,4870,0,2.279162279162279
+target_species_only,Crinia parinsignifera + Crinia signifera,2,4725,4350,2.211302211302211
+target_species_only,Limnodynastes peronii,1,4322,0,2.0226980226980227
+target_species_only,Crinia glauerti,1,4069,0,1.9042939042939042
+target_species_only,Crinia parinsignifera + Limnodynastes tasmaniensis,2,3829,2711,1.791973791973792
+target_species_only,Crinia parinsignifera + Crinia signifera + Limnodynastes tasmaniensis,3,3767,3220,1.7629577629577629
+target_species_only,Litoria peronii,1,3535,0,1.6543816543816543
+target_species_only,Limnodynastes peronii + Litoria fallax + Litoria peronii,3,3185,1447,1.4905814905814905
+target_species_only,Crinia signifera + Limnodynastes dumerilii + Limnodynastes tasmaniensis,3,3036,2802,1.420849420849421
+target_species_only,Litoria pyrina,1,2598,0,1.215865215865216
+target_species_only,Litoria caerulea + Litoria gracilenta,2,2387,1367,1.117117117117117
+target_species_only,Adelotus brevis + Limnodynastes peronii,2,2308,1820,1.08014508014508
+target_species_only,Litoria moorei,1,2253,0,1.0544050544050545
+target_species_only,Crinia signifera + Litoria peronii,2,2134,1474,0.9987129987129987
+target_species_only,Limnodynastes peronii + Limnodynastes tasmaniensis,2,2060,1837,0.9640809640809641
+target_species_only,Limnodynastes dumerilii + Limnodynastes tasmaniensis,2,2025,1963,0.9477009477009477
+target_species_only,Adelotus brevis + Litoria fallax + Litoria peronii,3,1899,446,0.8887328887328887
+target_species_only,Limnodynastes tasmaniensis,1,1891,0,0.884988884988885
+target_species_only,Litoria caerulea + Litoria pyrina,2,1789,786,0.8372528372528373

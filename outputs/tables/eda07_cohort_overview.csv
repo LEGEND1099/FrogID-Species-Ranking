@@ -1,0 +1,5 @@
+cohort,events,rows_with_environmental_NA,first_event_date,last_event_date,percent_environmental_NA
+primary_single_species,247406,4806,2017-11-10,2023-11-09,1.9425559606476803
+multispecies_all,213675,2009,2017-11-10,2023-11-09,0.9402129402129402
+multispecies_eligible,127322,1251,2017-11-10,2023-11-09,0.9825481849169821
+multispecies_partial_overlap,86353,758,2017-11-10,2023-11-09,0.8777923175801652
