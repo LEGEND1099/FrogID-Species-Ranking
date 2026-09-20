@@ -1,0 +1,3 @@
+"environmental_status","events","latitude_min","latitude_q25","latitude_median","latitude_q75","latitude_max","longitude_min","longitude_q25","longitude_median","longitude_q75","longitude_max"
+"complete",242600,-43.6093429802392,-35.438125,-33.7546,-30.9850250569727,-9.4119,113.538,145.469,150.598892462428,151.40701000747,153.63
+"missing",4806,-43.3593,-34.1208779468114,-33.7129837582446,-32.9934,-10.2067,114.624780164214,150.693906899757,151.262,151.584,153.617
