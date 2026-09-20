@@ -17,18 +17,19 @@ measure.
 
 ## Headline findings
 
-1. **The extension is a clean external evaluation set.** Its 213,675 events
-   share no `eventID` with the primary cohort, so no recording is both trained
-   on and evaluated against.
+1. **The multi-species extension is disjoint from the primary cohort.** Its 213,675 events
+   share no eventID with the 247,406 primary single-species events.
+   This makes it suitable for a future out-of-cohort ranking evaluation,
+   provided its different composition is acknowledged.
 2. **Only 59.6% of it is strictly evaluable.** 127,322 events have every
    detected species inside the 18-class vocabulary; the other 86,353 contain at
    least one species the model can never predict.
-3. **Recall@k has a hard ceiling below 1.** Every eligible event holds at
+3. **Recall@k has a k-dependent structural ceiling.** Every eligible event holds at
    least two species, so mean Recall@1 cannot exceed **0.438** and Recall@3
    cannot exceed **0.973**, however good the model is.
-4. **The strictly evaluable subset is not a representative subsample.** It is
-   systematically cooler, drier and further south than the events it excludes.
-   This interacts directly with the project's central geography question.
+4. **The strictly evaluable subset differs materially from the excluded partial-overlap events.**
+   Its observed locations and environmental summaries are further south, cooler and drier,
+   so evaluation on this subset would not have the same covariate distribution as the full multi-species extension.
 5. **Eligibility varies enormously by species** — from 95.8% of *Litoria
    ewingii* appearances down to 16.1% for *Litoria moorei*. Per-species Recall@k
    is therefore measured on very unequal samples.
@@ -85,9 +86,9 @@ the 18-class vocabulary. Eligibility collapses as recordings get richer:
 | 8 | 0.7 |
 | 9+ | 0.0 |
 
-This is a mechanical consequence of the 2,000-event selection threshold, not a
-data problem: the more species a recording holds, the more chances it has to
-include one of the 124 non-vocabulary species.
+This is an expected consequence of evaluating against a vocabulary restricted
+to the 18 selected classes: as the number of detected species in an event increases,
+there are more opportunities for at least one detection to fall outside that vocabulary.
 
 **The species responsible.** 142 distinct species appear in the extension, 124
 of them outside the vocabulary. A small number drive most exclusions:
@@ -122,11 +123,10 @@ Recall@k that belongs to the data, not to any model:
 | 4 | 97.8% | 0.995 |
 | 5 | 99.6% | 0.999 |
 
-**This must be reported alongside any Recall@k result.** A model scoring
-Recall@1 = 0.40 on this extension is at 91% of the achievable maximum, not
-failing. Recall@3 and Recall@5 are the informative operating points; Recall@1
-is close to meaningless here and should be reported as Top-1 accuracy against
-the primary cohort instead.
+Future Recall@k results should be interpreted alongside these structural ceilings.
+Recall@1 has a maximum attainable mean recall of only 0.438, while the ceilings
+for Recall@3 and Recall@5 are 0.973 and 0.999 respectively. This provides a
+data-driven reason to prioritise k = 3 and 5 in the later evaluation plan.
 
 ---
 
@@ -144,25 +144,16 @@ Strongest associations by Jaccard:
 | *Crinia signifera* + *Limnodynastes tasmaniensis* | 26,544 | 0.243 |
 | *Litoria caerulea* + *Litoria gracilenta* | 4,674 | 0.206 |
 
-Hierarchical clustering on the co-occurrence matrix separates four groups that
-map cleanly onto Australian regions:
+Hierarchical clustering of the Jaccard co-occurrence matrix shows several clear groups of
+species that are frequently detected together. Because this analysis clusters species using
+co-occurrence only, it does not by itself establish that the groups are geographic. The pattern
+is consistent with spatial structuring, which should be checked directly in EDA-04 using the
+geographic data.
 
-- **South-west**: *Crinia glauerti*, *Crinia georgiana*, *Litoria moorei*.
-  Near-total isolation from the other 15 species.
-- **Northern/tropical**: *Litoria caerulea*, *Litoria gracilenta*,
-  *Litoria pyrina*, *Litoria infrafrenata*.
-- **Eastern coastal**: *Litoria fallax*, *Litoria peronii*,
-  *Limnodynastes peronii*, *Adelotus brevis*.
-- **South-eastern temperate**: *Crinia signifera*,
-  *Limnodynastes tasmaniensis*, *Crinia parinsignifera*,
-  *Limnodynastes dumerilii*, *Litoria ewingii*, *Litoria verreauxii*.
-
-**Relevance to EDA-04/09.** Co-occurrence structure here is essentially
-geographic structure. The block-diagonal pattern is independent corroboration
-that the 18 classes are strongly spatially separated, which is exactly the
-condition under which random validation flatters a model with latitude and
-longitude in it. This supports treating the M3 vs M4 comparison under spatial
-blocking as the decisive test.
+**Relevance to EDA-04/09.** The strong block structure provides a data-driven reason to test
+whether these co-occurrence groups also have distinct spatial distributions. If EDA-04 confirms
+strong geographic separation, that evidence can then be used to justify spatially aware
+validation in the later project plan.
 
 ---
 
@@ -183,7 +174,7 @@ The most common exact combinations across all detected species are:
 
 All of the top ten are pairs, and *Crinia signifera*, the most common single
 species, is in six of them. Combinations are dominated by two-species
-pairings within one regional cluster (section 4). *Litoria fallax* + *Litoria
+pairings within the same co-occurrence groups (section 4). *Litoria fallax* + *Litoria
 peronii* is 9,299 events among target species only but just 4,088 when all
 detected species must match, because they are often joined by a non-vocabulary
 species.
@@ -194,7 +185,8 @@ species.
 
 Table: `eda07_species_participation.csv`. Figure: `eda07_species_participation.png`.
 
-Most target species appear in multi-species recordings more often than alone.
+Within the retained clean primary and multi-species cohorts, most target species
+appear in multi-species recordings more often than alone.
 *Litoria verreauxii* (90.2%) and *Crinia parinsignifera* (87.9%) are recorded
 in company nine times out of ten; only *Litoria infrafrenata* (40.2%) and
 *Litoria quiritatus* (47.6%) are predominantly solitary.
@@ -208,10 +200,11 @@ Eligibility rates differ far more than participation rates:
 | *Crinia signifera* | 81.0 | *Litoria caerulea* | 34.0 |
 | *Litoria verreauxii* | 80.1 | *Litoria infrafrenata* | 38.7 |
 
-A species living alongside many unselected species is under-represented in the
-strict evaluation even when it is common. *Litoria moorei* contributes 4,090
+Species that frequently co-occur with species outside the 18-class vocabulary are
+under-represented in the strict evaluation subset. *Litoria moorei* contributes 4,090
 multi-species appearances but only 659 evaluable ones. Per-species Recall@k for
-the bottom group will be noisy and is not comparable with the top group.
+low-eligibility species will be estimated from much smaller samples, so it should
+be reported with the corresponding eligible sample size and interpreted with greater uncertainty.
 
 ---
 
@@ -220,7 +213,8 @@ the bottom group will be noisy and is not comparable with the top group.
 Tables: `eda07_eligible_vs_partial.csv`, `eda07_cohort_comparison.csv`.
 Figure: `eda07_eligible_vs_partial.png`.
 
-No. Medians, eligible vs partial-overlap:
+The two subsets differ materially on several observed covariates.
+Medians, eligible vs partial-overlap:
 
 | Variable | Eligible | Partial overlap |
 | --- | ---: | ---: |
@@ -229,20 +223,18 @@ No. Medians, eligible vs partial-overlap:
 | BIO12 annual precipitation (mm) | 890 | 1,127 |
 | Elevation (m) | 107 | 97 |
 
-The eligible subset sits roughly four degrees further south, three degrees
-cooler and 240 mm drier. This follows from the species-selection rule: the
-2,000-event threshold favoured widespread temperate species, so recordings in
-warmer, wetter northern assemblages are much more likely to contain an
-unselected species.
+The eligible subset is roughly four degrees further south in median latitude,
+about three degrees cooler in BIO1 and around 240 mm drier in BIO12. These are
+substantial descriptive shifts. The mechanism should be investigated in EDA-04/05
+rather than assumed from this analysis alone.
 
-**Consequence.** Strict Recall@k measures ranking quality in temperate
-southern Australia, not nationally. Because the project's central question is
-whether models generalise geographically, silently evaluating only on eligible
-events would bias that answer in the direction the project is trying to test.
+**Consequence.** A strict Recall@k evaluation would place substantially more weight on
+cooler and more southerly recording contexts than the full multi-species extension.
+That scope difference should therefore be reported alongside future Recall@k results.
 
 ---
 
-## 8. Training cohort vs extension
+## 8. Primary cohort vs multi-species extension
 
 Tables: `eda07_cohort_monthly_share.csv`, `eda07_cohort_comparison.csv`,
 `eda07_cohort_overview.csv`. Figures: `eda07_cohort_monthly_share.png`,
@@ -258,29 +250,32 @@ vs eligible extension events:
 | BIO12 annual precipitation (mm) | 1,002 | 987 | 890 |
 | Elevation (m) | 76 | 98 | 107 |
 
-The full extension resembles the training cohort closely on climate and
-latitude. The shift only appears in the eligible subset (section 7), so a
-model trained on the primary cohort is not being tested on a different climate
-overall, but strict evaluation would be. Elevation is somewhat higher in the
-extension.
+On these selected median summaries, the full extension is relatively similar
+to the primary cohort, whereas the eligible subset shows a clearer shift.
+These summaries do not establish that the full distributions are identical,
+but they show that restricting to Recall@k-eligible events changes the observed
+environmental composition more noticeably. Median elevation is also somewhat
+higher in the extension.
 
 **Season.** Both cohorts span the same window (2017-11-10 to 2023-11-09) and
 are seasonal in the same direction, but the extension is more sharply peaked:
 November holds 23.5% of eligible events against 19.2% of primary events, and
-the autumn–winter trough is deeper. Multi-species recordings concentrate in peak spring chorus
-conditions, when more species are calling at once.
+the autumn–winter trough is deeper. Multi-species recordings are more concentrated
+in spring. This may reflect a combination of frog calling activity and FrogID
+recording effort, so these counts should not be interpreted as pure phenology.
 
-Environmental missingness is *lower* in the extension (0.98% of eligible events)
-than in the primary cohort (1.94%), consistent with EDA-06's expectation that
-missingness sits at raster edges and coastal cells.
+Environmental missingness is lower in the eligible extension (0.98%) than in
+the primary cohort (1.94%). EDA-06 should determine whether this difference is
+explained by geography, raster coverage or species composition rather than
+assuming the mechanism here.
 
 ---
 
 ## Recommendations for the modelling stage
 
-1. **Report the ceiling with every Recall@k number.** Either report raw
-   Recall@k beside the attainable maximum, or report the normalised ratio
-   (achieved ÷ ceiling). Do not present Recall@1 on this extension as a headline.
+1. **Report the theoretical ceiling alongside future Recall@k results.**
+   This is especially important for small k, where the number of species
+   detected in each recording constrains the maximum attainable recall.
 2. **Use k ∈ {3, 5}** as the primary operating points.
 3. **Run both a strict and a restricted evaluation.**
    - *Strict*: the 127,322 eligible events, scoring recall over all detected species.
@@ -288,12 +283,13 @@ missingness sits at raster edges and coastal cells.
      species present and ignoring non-vocabulary detections.
 
    The restricted variant covers the warmer northern events the strict subset
-   drops. Agreement between the two supports a national claim; divergence is
-   itself a reportable finding about where the vocabulary is thin.
+   drops. Comparing the two would show how sensitive future evaluation is
+   to the 18-class vocabulary restriction. Neither result alone should be
+   interpreted as evidence of national ecological coverage.
 4. **Report per-species Recall@k with its eligible sample size** so the
    low-eligibility species are not read as poor model performance.
-5. **Keep the extension out of training entirely**, including any
-   hyperparameter tuning, so it stays a genuine external evaluation.
+5. **Keep the multi-species extension out of future model fitting and hyperparameter tuning**
+   so it remains a genuinely disjoint evaluation extension.
 6. **Do not treat a non-vocabulary detection as a false positive.** The model
    has no vocabulary entry for *Litoria tyleri*; failing to rank it is a
    scope limitation, not an error.
@@ -302,8 +298,9 @@ missingness sits at raster edges and coastal cells.
 
 - Should the restricted evaluation weight events by `n_selected_species`, or
   weight every event equally? Equal weighting lets two-species events dominate.
-- Is a spatially blocked Recall@k worth running, given that co-occurrence
-  structure is largely geographic? This depends on EDA-09's block design.
+- Is a spatially blocked Recall@k worth running, if EDA-04 confirms that the
+  observed co-occurrence structure is strongly geographic? This depends on EDA-09's
+  block design.
 - Would reporting Recall@k separately per co-occurrence cluster (section 4) be
   more informative than a single national number?
 
@@ -314,3 +311,5 @@ missingness sits at raster edges and coastal cells.
 - No exact recording coordinates are published; all spatial content is
   aggregate summary statistics.
 - Multi-species events were not expanded into contradictory training labels.
+- No classification model was fitted in EDA-07; all Recall@k quantities reported
+  here are structural properties or theoretical ceilings derived from the data.

@@ -1,9 +1,11 @@
 # EDA-07: Multi-species recording structure, co-occurrence and Recall@k design
 #
 # Purpose:
-# Understand whether a classifier trained on single-species recordings can be
-# meaningfully evaluated as a ranked retrieval system on the multi-species
-# recordings, and quantify what that evaluation can and cannot measure.
+# Understand whether the multi-species recordings can support a future
+# ranked-retrieval evaluation of a classifier trained on the primary
+# single-species cohort, and quantify what that evaluation can and cannot measure.
+#
+# This is EDA only. No classifier is fitted in this script.
 #
 # Questions addressed (docs/eda-plan.md, EDA-07):
 #   - How many species occur per recording?
@@ -74,7 +76,7 @@ stopifnot(
   nrow(multi) == 213675L,
   length(vocabulary) == 18L,
 
-  # The extension is a disjoint set of recordings, not duplicated training rows.
+  # The extension is disjoint from the primary single-species cohort.
   length(intersect(primary$eventID, multi$eventID)) == 0L,
 
   # Every extension event really is multi-species with at least one target.
@@ -236,8 +238,8 @@ species_participation <- primary_counts |>
     total_events = primary_events + multi_events,
     multi_share_percent = 100 * multi_events / total_events,
     eligibility_rate_percent = 100 * eligible_multi_events / multi_events,
-    # Share of the whole cohort, to show whether ranking evaluation would be
-    # dominated by the same species that dominate training.
+    # Compare representation in the primary and multi-species cohorts to see
+    # whether future ranking evaluation would emphasise the same common species.
     primary_share_percent = 100 * primary_events / sum(primary_events),
     multi_appearance_share_percent = 100 * multi_events / sum(multi_events)
   ) |>
@@ -387,8 +389,8 @@ eligible_vs_ineligible <- bind_rows(
 # -------------------------------------------------------------------------
 # Output 9: primary vs multi-species cohort comparison
 #
-# The extension is only a fair external evaluation set if its seasonal and
-# environmental context resembles the training cohort.
+# Compare the multi-species extension with the primary single-species cohort
+# to see whether their observed seasonal and environmental contexts differ.
 # -------------------------------------------------------------------------
 
 cohort_comparison <- bind_rows(
@@ -607,12 +609,13 @@ fig_participation <- ggplot(participation_long, aes(percent, species)) +
   facet_wrap(~measure) +
   scale_x_continuous(limits = c(0, 100), expand = expansion(mult = c(0, 0.05))) +
   labs(
-    title = "How each target species is represented in the evaluation extension",
-    subtitle = "Species ordered by training-cohort frequency (most frequent at top)",
+    title = "How each target species is represented in the multi-species extension",
+    subtitle = "Species ordered by primary-cohort frequency (most frequent at top)",
     x = "Percent",
     y = NULL,
     caption = paste(
-      "Left: of all events containing the species, the percent that are multi-species.",
+      "Left: among retained primary and multi-species events containing the species,",
+      "the percent that are multi-species.",
       "Right: of its multi-species events, the percent that are Recall@k eligible."
     )
   ) +
@@ -681,7 +684,7 @@ fig_eligibility_context <- ggplot(
   facet_wrap(~variable, scales = "free_x") +
   scale_fill_manual(values = eligibility_fill, guide = "none") +
   labs(
-    title = "Are the evaluable recordings a representative subsample?",
+    title = "Eligible and partial-overlap recordings differ in observed context",
     subtitle = "Recall@k-eligible vs partial-overlap recordings in the extension",
     x = NULL,
     y = NULL,
@@ -691,12 +694,12 @@ fig_eligibility_context <- ggplot(
 save_figure(fig_eligibility_context, "eda07_eligible_vs_partial.png", 9, 5.5)
 
 
-## Figure 6 -- training cohort vs evaluation extension -------------------
+## Figure 6 -- primary cohort vs multi-species extension -----------------
 
 cohort_labels <- c(
-  primary_single_species = "Primary (single-species, training)",
+  primary_single_species = "Primary single-species cohort",
   multispecies_all = "Multi-species extension (all)",
-  multispecies_eligible = "Multi-species extension (Recall@k eligible)"
+  multispecies_eligible = "Multi-species extension (Recall@k-eligible subset)"
 )
 
 fig_monthly <- monthly_share |>
@@ -716,13 +719,13 @@ fig_monthly <- monthly_share |>
   ) +
   guides(colour = guide_legend(nrow = 2)) +
   labs(
-    title = "Seasonal profile of the training cohort and the evaluation extension",
+    title = "Seasonal profile of the primary cohort and multi-species extension",
     subtitle = "Percent of each cohort's recordings falling in each calendar month",
     x = NULL,
     y = "Percent of cohort",
     caption = paste(
       "The extension is more sharply peaked in spring and thinner through autumn",
-      "and winter than the\ntraining cohort, so its seasonal composition is related",
+      "and winter than the\nprimary cohort, so its seasonal composition is related",
       "but not identical."
     )
   ) +
@@ -731,7 +734,7 @@ fig_monthly <- monthly_share |>
 save_figure(fig_monthly, "eda07_cohort_monthly_share.png", 8.5, 5)
 
 
-## Figure 7 -- training cohort vs evaluation extension, environment -------
+## Figure 7 -- primary cohort vs multi-species extension, environment -----
 
 cohort_environment <- bind_rows(
   primary |>
@@ -767,7 +770,7 @@ fig_cohort_environment <- ggplot(
     guide = "none"
   ) +
   labs(
-    title = "Environmental context of the training cohort and the extension",
+    title = "Environmental context of the primary cohort and multi-species extension",
     subtitle = "Primary single-species events vs all and Recall@k-eligible multi-species events",
     x = NULL,
     y = NULL,
