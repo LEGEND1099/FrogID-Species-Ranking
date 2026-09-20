@@ -1,0 +1,17 @@
+"measure","value"
+"events",247406
+"unique_exact_coordinate_pairs",188063
+"coordinate_pairs_used_more_than_once",15316
+"events_at_repeated_exact_coordinates",74659
+"events_at_repeated_exact_coordinates_percent",30.1767135801072
+"maximum_events_at_one_exact_coordinate",927
+"latitude_min",-43.6093429802392
+"latitude_q25",-35.4161153289937
+"latitude_median",-33.7545718392514
+"latitude_q75",-31.034572856874
+"latitude_max",-9.4119
+"longitude_min",113.538
+"longitude_q25",145.509978261282
+"longitude_median",150.615126988991
+"longitude_q75",151.434
+"longitude_max",153.63
