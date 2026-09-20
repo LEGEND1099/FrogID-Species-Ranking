@@ -1,0 +1,4 @@
+"reason","events","denominator_events","percent_events","reason_label"
+"uncertainty_over_1000m",6749,6749,100,"Coordinate uncertainty >1 km"
+"obscured_geoprivacy",6749,6749,100,"Obscured geoprivacy"
+"generalised_location",6749,6749,100,"Generalised location"

@@ -1,0 +1,8 @@
+"stage_order","stage","events_excluded_at_stage","denominator_events","percent_of_raw_events_excluded_at_stage","events_remaining"
+0,"raw_events",0,6749,0,6749
+1,"complete_species",0,6749,0,6749
+2,"valid_coordinates",0,6749,0,6749
+3,"positive_uncertainty_at_most_1000m",6749,6749,100,0
+4,"open_geoprivacy",0,6749,0,0
+5,"no_data_generalization",0,6749,0,0
+6,"valid_event_date",0,6749,0,0

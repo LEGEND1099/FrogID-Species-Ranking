@@ -1,0 +1,27 @@
+"scientificName","epbc_match_status","epbc_listed","epbc_category","selected_for_model","raw_events","raw_single_species_events","open_location_events","precision_eligible_events","no_generalization_events","clean_events","clean_single_species_events","retention_raw_to_clean_percent"
+"Cophixalus aenigma","exact_listed_name",TRUE,"Endangered",FALSE,211,66,0,0,0,0,0,0
+"Crinia sloanei","exact_listed_name",TRUE,"Endangered",FALSE,2654,268,0,0,0,0,0,0
+"Litoria booroolongensis","exact_listed_name",TRUE,"Endangered",FALSE,12,3,0,0,0,0,0,0
+"Litoria littlejohni","exact_listed_name",TRUE,"Endangered",FALSE,53,19,0,0,0,0,0,0
+"Litoria watsoni","exact_listed_name",TRUE,"Endangered",FALSE,39,15,0,0,0,0,0,0
+"Mixophyes fleayi","exact_listed_name",TRUE,"Endangered",FALSE,69,55,0,0,0,0,0,0
+"Philoria knowlesi","exact_listed_name",TRUE,"Endangered",FALSE,1,1,0,0,0,0,0,0
+"Philoria kundagungan","exact_listed_name",TRUE,"Endangered",FALSE,39,38,0,0,0,0,0,0
+"Philoria pughi","exact_listed_name",TRUE,"Endangered",FALSE,26,24,0,0,0,0,0,0
+"Philoria richmondensis","exact_listed_name",TRUE,"Endangered",FALSE,5,5,0,0,0,0,0,0
+"Uperoleia mahonyi","exact_listed_name",TRUE,"Endangered",FALSE,69,0,0,0,0,0,0,0
+"Uperoleia martini","exact_listed_name",TRUE,"Endangered",FALSE,34,0,0,0,0,0,0,0
+"Assa darlingtoni","exact_listed_name",TRUE,"Vulnerable",FALSE,498,413,0,0,0,0,0,0
+"Litoria aurea","exact_listed_name",TRUE,"Vulnerable",FALSE,299,31,0,0,0,0,0,0
+"Litoria daviesae","exact_listed_name",TRUE,"Vulnerable",FALSE,72,43,0,0,0,0,0,0
+"Litoria dayi","exact_listed_name",TRUE,"Vulnerable",FALSE,40,30,0,0,0,0,0,0
+"Litoria olongburensis","exact_listed_name",TRUE,"Vulnerable",FALSE,361,101,0,0,0,0,0,0
+"Litoria raniformis","exact_listed_name",TRUE,"Vulnerable",FALSE,1156,272,0,0,0,0,0,0
+"Litoria subglandulosa","exact_listed_name",TRUE,"Vulnerable",FALSE,46,28,0,0,0,0,0,0
+"Mixophyes balbus","exact_listed_name",TRUE,"Vulnerable",FALSE,108,58,0,0,0,0,0,0
+"Mixophyes iteratus","exact_listed_name",TRUE,"Vulnerable",FALSE,698,86,0,0,0,0,0,0
+"Philoria sphagnicola","exact_listed_name",TRUE,"Vulnerable",FALSE,72,70,0,0,0,0,0,0
+"Spicospina flammocaerulea","exact_listed_name",TRUE,"Vulnerable",FALSE,7,0,0,0,0,0,0,0
+"Uperoleia daviesae","exact_listed_name",TRUE,"Vulnerable",FALSE,202,1,0,0,0,0,0,0
+"Heleioporus australiacus","unresolved_listed_subspecies_only",NA,NA,FALSE,137,63,0,0,0,0,0,0
+"Litoria verreauxii","unresolved_listed_subspecies_only",NA,NA,TRUE,24573,2377,24349,23916,24349,23916,2334,97.3263337809791
