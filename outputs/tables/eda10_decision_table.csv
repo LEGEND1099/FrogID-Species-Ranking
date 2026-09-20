@@ -1,0 +1,18 @@
+decision,evidence,final_choice,alternatives_considered
+modelling_cohort,EDA-06,Use the same 242600 complete-case primary events for fair M0-M4 and model comparisons,Model-specific row sets; imputation
+seasonal_representation,EDA-03,"Use month_sin, month_cos, doy_sin and doy_cos; exclude raw month/day and year from primary model matrix",Raw month/day; year predictor
+environmental_missingness,EDA-06,Complete-case analysis; no primary imputation,Global imputation; model-native missing handling
+scaling,EDA-05,"Estimate scaling inside training folds for elastic-net, PCA-LDA and PCA-kNN; none for tree models",Global scaling; no scaling for all models
+correlated_environmental_features,EDA-05,Use model-specific handling rather than global variable deletion,Remove all highly correlated pairs; one universal PCA
+BIO5_BIO6_BIO7_dependency,EDA-05,Fold-fitted environmental PCA for LDA/kNN; elastic-net regularisation for multinomial; retain for trees,Globally delete BIO5/BIO6/BIO7 member
+class_imbalance,EDA-02,Train primary benchmark on natural class distribution; no over/undersampling; select/report with Macro-F1 and per-class recall,Mandatory class weights; oversampling; undersampling
+feature_progression,EDA-03; EDA-05; EDA-09B,Retain M0-M4; make M3 versus M4 the central coordinate-value comparison,Always include coordinates; always exclude coordinates
+feature_experiment,Combined EDA,Run elastic-net multinomial and XGBoost across M1-M4; then benchmark all five models on M3 and M4,Full 5x4 model-feature Cartesian product
+random_validation,EDA-09,3-fold stratified event-level CV on common complete-case cohort,5-fold or 10-fold random CV
+spatial_validation,EDA-04; EDA-09; EDA-09B,3-fold validation grouped by 0.5-degree cells; save fixed fold assignment and verify class support,Random only; 1-degree primary; 2-degree primary
+model_selection_metric,EDA-02; EDA-09,Macro-F1 under 0.5-degree grouped validation,Accuracy-only; random-CV-only selection
+ranking_metrics,Research question; EDA-02,"Report MRR, Top-3 and Top-5 alongside classification metrics",Accuracy only
+classifier_families,Combined EDA,Elastic-net multinomial; PCA-LDA; PCA-kNN; random forest; XGBoost,Single model family
+temporal_robustness,EDA-03,Report out-of-fold metrics by complete years 2018-2022; flag 2017/2023 as partial,Year predictor; separate partial-year holdout
+multi_species_evaluation,EDA-07; EDA-09B,Final model only: strict and restricted Recall@3/5; equal event weighting; report ceilings/sample sizes,Train/tune on extension; treat non-vocabulary detections as errors
+conservation_geoprivacy,EDA-08,Report public-data applicability constraint; no threatened-species performance claim,Infer protected locations; treat geoprivacy as data error
