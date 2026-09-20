@@ -4,7 +4,7 @@ Work package: EDA-07 (`docs/eda-plan.md`).
 Script: `analysis/07_multispecies_eda.R`.
 Inputs: `data/processed/frog_multispecies_extension.rds`,
 `data/processed/frog_primary_multiclass.rds` (read-only).
-Outputs: `outputs/tables/eda07_*.csv` (11), `outputs/figures/eda07_*.png` (6).
+Outputs: `outputs/tables/eda07_*.csv` (11), `outputs/figures/EDA07/eda07_*.png` (7).
 
 ## Purpose
 
@@ -49,6 +49,21 @@ Table: `eda07_species_per_event.csv`. Figure: `eda07_species_per_event.png`.
 
 The distribution is steep: four out of five multi-species recordings contain
 two or three species. The maximum is 13.
+
+**Selected-species count.** Counting only the 18 target species per event
+(same table, `target_species_detected` rows):
+
+| Target species detected | Events | % of extension |
+| ---: | ---: | ---: |
+| 1 | 40,145 | 18.8 |
+| 2 | 113,455 | 53.1 |
+| 3 | 42,027 | 19.7 |
+| 4 | 14,052 | 6.6 |
+| 5+ | 3,996 | 1.9 |
+
+Nearly one event in five contains only one target species, the rest of its
+detections being non-vocabulary. Those events are all partial-overlap, so they
+have a well-defined target label but are excluded from strict Recall@k.
 
 ---
 
@@ -151,7 +166,31 @@ blocking as the decisive test.
 
 ---
 
-## 5. Per-species representation
+## 5. Which exact species combinations are common
+
+Table: `eda07_top_combinations.csv` (top 30 exact combinations, listed both
+over all detected species and over target species only).
+
+The most common exact combinations across all detected species are:
+
+| Combination | Events | % of extension |
+| --- | ---: | ---: |
+| *Crinia signifera* + *Limnodynastes peronii* | 10,524 | 4.9 |
+| *Crinia signifera* + *Limnodynastes tasmaniensis* | 7,965 | 3.7 |
+| *Crinia signifera* + *Litoria ewingii* | 7,642 | 3.6 |
+| *Crinia signifera* + *Litoria verreauxii* | 5,288 | 2.5 |
+| *Crinia signifera* + *Limnodynastes dumerilii* | 5,109 | 2.4 |
+
+All of the top ten are pairs, and *Crinia signifera*, the most common single
+species, is in six of them. Combinations are dominated by two-species
+pairings within one regional cluster (section 4). *Litoria fallax* + *Litoria
+peronii* is 9,299 events among target species only but just 4,088 when all
+detected species must match, because they are often joined by a non-vocabulary
+species.
+
+---
+
+## 6. Per-species representation
 
 Table: `eda07_species_participation.csv`. Figure: `eda07_species_participation.png`.
 
@@ -176,7 +215,7 @@ the bottom group will be noisy and is not comparable with the top group.
 
 ---
 
-## 6. Is the evaluable subset representative?
+## 7. Is the evaluable subset representative?
 
 Tables: `eda07_eligible_vs_partial.csv`, `eda07_cohort_comparison.csv`.
 Figure: `eda07_eligible_vs_partial.png`.
@@ -203,14 +242,32 @@ events would bias that answer in the direction the project is trying to test.
 
 ---
 
-## 7. Training cohort vs extension
+## 8. Training cohort vs extension
 
-Table: `eda07_cohort_monthly_share.csv`. Figure: `eda07_cohort_monthly_share.png`.
+Tables: `eda07_cohort_monthly_share.csv`, `eda07_cohort_comparison.csv`,
+`eda07_cohort_overview.csv`. Figures: `eda07_cohort_monthly_share.png`,
+`eda07_cohort_environment.png`.
 
-Both cohorts span the same window (2017-11-10 to 2023-11-09) and are seasonal
-in the same direction, but the extension is more sharply peaked: November holds
-23.6% of eligible events against 19.2% of primary events, and the autumn–winter
-trough is deeper. Multi-species recordings concentrate in peak spring chorus
+**Environment.** Medians, primary single-species cohort vs all extension events
+vs eligible extension events:
+
+| Variable | Primary | Extension (all) | Extension (eligible) |
+| --- | ---: | ---: | ---: |
+| Latitude | −33.75 | −33.43 | −34.49 |
+| BIO1 annual mean temperature (°C) | 17.13 | 17.13 | 15.36 |
+| BIO12 annual precipitation (mm) | 1,002 | 987 | 890 |
+| Elevation (m) | 76 | 98 | 107 |
+
+The full extension resembles the training cohort closely on climate and
+latitude. The shift only appears in the eligible subset (section 7), so a
+model trained on the primary cohort is not being tested on a different climate
+overall, but strict evaluation would be. Elevation is somewhat higher in the
+extension.
+
+**Season.** Both cohorts span the same window (2017-11-10 to 2023-11-09) and
+are seasonal in the same direction, but the extension is more sharply peaked:
+November holds 23.5% of eligible events against 19.2% of primary events, and
+the autumn–winter trough is deeper. Multi-species recordings concentrate in peak spring chorus
 conditions, when more species are calling at once.
 
 Environmental missingness is *lower* in the extension (0.98% of eligible events)

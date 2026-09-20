@@ -50,7 +50,7 @@ primary <- readRDS(paths["primary"])
 multi <- readRDS(paths["multispecies"])
 
 tables_dir <- "outputs/tables"
-figures_dir <- "outputs/figures"
+figures_dir <- "outputs/figures/EDA07"
 
 dir.create(tables_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(figures_dir, recursive = TRUE, showWarnings = FALSE)
@@ -731,6 +731,52 @@ fig_monthly <- monthly_share |>
 save_figure(fig_monthly, "eda07_cohort_monthly_share.png", 8.5, 5)
 
 
+## Figure 7 -- training cohort vs evaluation extension, environment -------
+
+cohort_environment <- bind_rows(
+  primary |>
+    mutate(cohort = "primary_single_species"),
+  multi |>
+    mutate(cohort = "multispecies_all"),
+  multi |>
+    filter(recall_at_k_eligible) |>
+    mutate(cohort = "multispecies_eligible")
+) |>
+  select(cohort, all_of(names(comparison_labels))) |>
+  pivot_longer(-cohort, names_to = "variable", values_to = "value") |>
+  filter(!is.na(value)) |>
+  mutate(
+    cohort = factor(cohort_labels[cohort], levels = rev(unname(cohort_labels))),
+    variable = factor(
+      comparison_labels[variable],
+      levels = unname(comparison_labels)
+    )
+  )
+
+fig_cohort_environment <- ggplot(
+  cohort_environment,
+  aes(value, cohort, fill = cohort)
+) +
+  geom_boxplot(outlier.alpha = 0.05, outlier.size = 0.4, width = 0.55) +
+  facet_wrap(~variable, scales = "free_x") +
+  scale_fill_manual(
+    values = setNames(
+      c("#B5651D", "#7FA8C0", "#14415C"),
+      unname(cohort_labels)
+    ),
+    guide = "none"
+  ) +
+  labs(
+    title = "Environmental context of the training cohort and the extension",
+    subtitle = "Primary single-species events vs all and Recall@k-eligible multi-species events",
+    x = NULL,
+    y = NULL,
+    caption = "Aggregate distributions only; no exact recording locations are shown."
+  )
+
+save_figure(fig_cohort_environment, "eda07_cohort_environment.png", 10, 6)
+
+
 # -------------------------------------------------------------------------
 # Console handoff
 # -------------------------------------------------------------------------
@@ -775,5 +821,5 @@ print(
 
 cat("\nEDA-07 COMPLETE\n")
 cat("11 tables written to outputs/tables/ (eda07_*.csv)\n")
-cat("6 figures written to outputs/figures/ (eda07_*.png)\n")
+cat("7 figures written to outputs/figures/EDA07/ (eda07_*.png)\n")
 cat("No data were modified, filtered, imputed, scaled or balanced.\n")
