@@ -1,0 +1,5 @@
+"grid_size_degrees","occupied_blocks","median_events_per_block","maximum_events_in_one_block","largest_block_event_share_percent","minimum_species_occupied_blocks","median_species_occupied_blocks","minimum_species_effective_blocks","median_species_effective_blocks","maximum_species_largest_block_share_percent","species_with_fewer_than_3_occupied_blocks","species_with_fewer_than_5_occupied_blocks","species_with_fewer_than_10_occupied_blocks","species_with_effective_blocks_below_3","species_with_effective_blocks_below_5","species_with_effective_blocks_below_10"
+0.25,1872,12,12820,5.18176600405811,42,250.5,4.84516307694293,58.869493462621,67.6695918651623,0,0,0,0,1,4
+0.5,762,21,23768,9.60688099722723,23,113.5,3.90078648833126,27.3378772230986,69.2296977294888,0,0,0,0,3,4
+1,318,25.5,34397,13.903058131169,13,50.5,2.54732084740974,13.889033617443,78.2729805013928,0,0,0,1,4,6
+2,132,42,62587,25.2972846252718,7,22,2.08204538771349,6.44272488879582,82.7298050139276,0,0,3,3,8,12
