@@ -1,0 +1,9 @@
+model,feature_set,regime,feature,folds,mean_standardised_coef_norm,folds_selected
+elastic_net,M1,random,day_of_year_cos,3,1.4199764686403693,3
+elastic_net,M1,random,month_cos,3,1.0393446546623353,3
+elastic_net,M1,random,month_sin,3,0.6180390521707599,3
+elastic_net,M1,random,day_of_year_sin,3,0.5017825309715958,3
+elastic_net,M1,spatial,day_of_year_cos,3,1.2296052123094643,3
+elastic_net,M1,spatial,month_cos,3,0.8971578626704403,3
+elastic_net,M1,spatial,day_of_year_sin,3,0.5260637626521906,3
+elastic_net,M1,spatial,month_sin,3,0.5204429546052706,3
