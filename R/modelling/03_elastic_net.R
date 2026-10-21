@@ -23,6 +23,11 @@
 # Usage (from repository root):
 #   Rscript R/modelling/03_elastic_net.R            # M1 M2 M3 M4
 #   Rscript R/modelling/03_elastic_net.R M1         # one feature set
+#   EN_WORKERS=8 Rscript R/modelling/03_elastic_net.R M2 M3 M4
+#
+# All requested feature sets share one job queue (feature set x regime x
+# fold). EN_WORKERS sets the number of parallel workers (default: cores - 2,
+# capped at the number of jobs). Progress lines are printed as jobs run.
 #
 # Outputs (rebuilt from every completed feature set):
 #   outputs/tables/model_elastic_net_fold_metrics.csv
@@ -49,6 +54,12 @@ alpha_grid <- c(0, 0.5, 1)
 n_lambda <- 30L
 lambda_min_ratio <- 1e-4
 
+# Solver iteration limit. The glmnet default (1e5) fails to converge for
+# M2-M4 below lambda ~ 0.01 and silently truncates the path ("solutions for
+# larger lambdas returned"), which censored tuning in the first run. 1e6
+# converges along the full path in a 20k-row check.
+glmnet_maxit <- 1e6
+
 contextual_sets <- c("M1", "M2", "M3", "M4")
 args <- commandArgs(trailingOnly = TRUE)
 run_sets <- if (length(args)) args else contextual_sets
@@ -58,7 +69,20 @@ if (!all(run_sets %in% contextual_sets)) {
        call. = FALSE)
 }
 
-n_workers <- min(6L, max(1L, detectCores() - 1L))
+jobs <- expand.grid(
+  fold = seq_len(n_outer_folds),
+  regime = c("random", "spatial"),
+  feature_set = run_sets,
+  stringsAsFactors = FALSE
+)[, c("feature_set", "regime", "fold")]
+
+requested_workers <- suppressWarnings(as.integer(Sys.getenv("EN_WORKERS")))
+n_workers <- if (!is.na(requested_workers) && requested_workers > 0L) {
+  requested_workers
+} else {
+  max(1L, detectCores() - 2L)
+}
+n_workers <- min(n_workers, nrow(jobs))
 
 cohort <- load_modelling_cohort()
 folds <- load_modelling_folds(cohort)
@@ -71,6 +95,16 @@ x_all <- as.matrix(cohort[certified_predictors])
 # -------------------------------------------------------------------------
 # Model helpers
 # -------------------------------------------------------------------------
+
+# Timestamped progress line; written to stderr so it appears immediately
+# from parallel workers.
+log_progress <- function(...) {
+  message(format(Sys.time(), "%H:%M:%S"), " | ", ...)
+}
+
+elapsed_minutes <- function(started) {
+  sprintf("%.1f min", as.numeric(difftime(Sys.time(), started, units = "mins")))
+}
 
 # glmnet fit that records, rather than prints, convergence warnings.
 fit_glmnet <- function(x, y, alpha, lambda = NULL) {
@@ -86,7 +120,8 @@ fit_glmnet <- function(x, y, alpha, lambda = NULL) {
       lambda = lambda,
       nlambda = n_lambda,
       lambda.min.ratio = lambda_min_ratio,
-      standardize = TRUE
+      standardize = TRUE,
+      control = list(maxit = glmnet_maxit)
     ),
     warning = function(w) {
       warnings_seen <<- c(warnings_seen, conditionMessage(w))
@@ -116,6 +151,8 @@ response_matrix <- function(prob_array_slice) {
 run_job <- function(feature_set, regime, k) {
 
   started <- Sys.time()
+  job_label <- paste0(feature_set, " ", regime, " fold ", k)
+  log_progress(job_label, ": started")
 
   features <- feature_sets[[feature_set]]
   x <- x_all[, features, drop = FALSE]
@@ -170,6 +207,11 @@ run_job <- function(feature_set, regime, k) {
     }
 
     rm(prob_path)
+
+    log_progress(
+      job_label, ": tuned alpha = ", alpha,
+      " (", length(lambdas), " lambdas, ", elapsed_minutes(started), ")"
+    )
   }
 
   tuning <- bind_rows(tuning)
@@ -204,6 +246,12 @@ run_job <- function(feature_set, regime, k) {
   )
 
   result <- evaluate_predictions(prob, y[assess_rows])
+
+  log_progress(
+    job_label, ": finished in ", elapsed_minutes(started),
+    " | selected alpha = ", selected$alpha,
+    " | assessment Macro-F1 = ", round(result$overall$macro_f1, 4)
+  )
 
   # Standardised coefficient magnitude per predictor: original-scale
   # coefficients x development-set SD, then the L2 norm across classes.
@@ -248,6 +296,11 @@ run_job <- function(feature_set, regime, k) {
         development_events = length(dev_rows),
         assessment_events = length(assess_rows),
         convergence_warnings = length(warnings_seen),
+        # FALSE if the refit path stopped before the selected lambda, in which
+        # case predict() would silently use a more regularised solution.
+        refit_reached_selected =
+          min(refit$fit$lambda) <= selected$lambda * (1 + 1e-8),
+        warning_messages = paste(unique(warnings_seen), collapse = " || "),
         runtime_seconds = as.numeric(difftime(Sys.time(), started, units = "secs"))
       )
     ),
@@ -262,38 +315,50 @@ run_job <- function(feature_set, regime, k) {
 # Run requested feature sets
 # -------------------------------------------------------------------------
 
-jobs <- expand.grid(
-  regime = c("random", "spatial"),
-  fold = seq_len(n_outer_folds),
-  stringsAsFactors = FALSE
+run_started <- Sys.time()
+log_progress(
+  "Elastic net: ", paste(run_sets, collapse = ", "), " | ",
+  nrow(jobs), " jobs on ", n_workers, " workers"
 )
+
+job_results <- mclapply(
+  seq_len(nrow(jobs)),
+  function(i) run_job(jobs$feature_set[i], jobs$regime[i], jobs$fold[i]),
+  mc.cores = n_workers,
+  mc.preschedule = FALSE
+)
+
+job_failed <- vapply(
+  job_results,
+  function(r) is.null(r) || inherits(r, "try-error"),
+  logical(1)
+)
+
+failed_sets <- character(0)
 
 for (feature_set in run_sets) {
 
-  cat(format(Sys.time(), "%H:%M:%S"), "-", feature_set, ":",
-      nrow(jobs), "jobs on", n_workers, "workers\n")
+  set_index <- which(jobs$feature_set == feature_set)
 
-  results <- mclapply(
-    seq_len(nrow(jobs)),
-    function(i) run_job(feature_set, jobs$regime[i], jobs$fold[i]),
-    mc.cores = n_workers,
-    mc.preschedule = FALSE
-  )
-
-  failed <- vapply(results, inherits, logical(1), what = "try-error")
-  if (any(failed) || any(vapply(results, is.null, logical(1)))) {
-    stop(
-      feature_set, " failed:\n",
-      paste(unlist(results[failed]), collapse = "\n"),
-      call. = FALSE
-    )
+  # A feature set is saved only if all six of its jobs succeeded.
+  if (any(job_failed[set_index])) {
+    failed_sets <- c(failed_sets, feature_set)
+    log_progress(feature_set, ": FAILED, not saved")
+    for (i in set_index[job_failed[set_index]]) {
+      message("  ", jobs$regime[i], " fold ", jobs$fold[i], ": ",
+              paste(as.character(job_results[[i]]), collapse = " "))
+    }
+    next
   }
+
+  results <- job_results[set_index]
+  set_jobs <- jobs[set_index, ]
 
   # Out-of-fold probabilities in cohort row order, one matrix per regime.
   predictions <- list()
 
   for (regime in c("random", "spatial")) {
-    regime_results <- results[jobs$regime == regime]
+    regime_results <- results[set_jobs$regime == regime]
     rows <- unlist(lapply(regime_results, `[[`, "assess_rows"))
     prob <- do.call(rbind, lapply(regime_results, `[[`, "prob"))
 
@@ -325,7 +390,7 @@ for (feature_set in run_sets) {
     )
   )
 
-  cat(format(Sys.time(), "%H:%M:%S"), "-", feature_set, "complete\n")
+  log_progress(feature_set, ": saved")
   print(
     feature_set_results$selected |>
       select(regime, fold, alpha, lambda, nonzero_features,
@@ -401,5 +466,15 @@ print(
            mrr_mean),
   width = Inf
 )
+
+cat("\nTotal run time:", elapsed_minutes(run_started), "\n")
+
+if (length(failed_sets)) {
+  stop(
+    "Feature set(s) failed and were not saved: ",
+    paste(failed_sets, collapse = ", "),
+    call. = FALSE
+  )
+}
 
 cat("\nMODEL-03 PASSED\n")
