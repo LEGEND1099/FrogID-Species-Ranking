@@ -1,0 +1,121 @@
+---
+title: "FrogID species ranking: model selection under spatial validation"
+subtitle: "STAT5003 Assignment 2 — Group W11G03"
+author: "Group W11G03"
+date: "2026-10-26"
+format:
+  html:
+    toc: true
+    number-sections: true
+    code-fold: true
+    code-summary: "Show analysis code"
+    embed-resources: true
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+# All computationally expensive model fits are run separately.
+# This Quarto document reads the versioned model-comparison artifacts only.
+suppressPackageStartupMessages({
+  library(readr)
+  library(knitr)
+})
+repo_root <- if (file.exists("renv.lock")) normalizePath(".") else normalizePath("..")
+tables <- file.path(repo_root, "outputs", "tables")
+figures <- file.path(repo_root, "outputs", "figures")
+load_table <- function(name) {
+  path <- file.path(tables, name)
+  if (!file.exists(path)) {
+    stop("Missing reporting artifact: ", path,
+         ". Run R/reporting/01_build_model_comparison.R first.")
+  }
+  read_csv(path, show_col_types = FALSE)
+}
+leaderboard <- load_table("report_m4_spatial_leaderboard.csv")
+summary <- load_table("report_model_summary.csv")
+effects <- load_table("report_m3_m4_effect.csv")
+species <- load_table("report_m4_spatial_species.csv")
+```
+
+# Executive summary
+
+**Research question.** How accurately can 18 frog species be ranked using seasonal, environmental and geographic observations, and how much does model performance change under geographically separated assessment?
+
+**Data.** We assess 242,600 complete-case FrogID recording events across 18 species with the common predictors and fixed three-fold validation splits.
+
+**Model selection rule.** Primary: mean M4 spatial Macro-F1. Secondary: top-3 accuracy, balanced accuracy, MRR, model stability and interpretability. The winner is provisional until all five classifier families are complete.
+
+*TODO before submission: write a 90–120-word summary of the final winner, main quantitative results, consequences and limits. Do not claim inference beyond these observational data.*
+
+# Problem, data and exploratory findings
+
+The task is multiclass species ranking, not species-presence estimation. The classifiers are evaluated on the same complete-case events and 18-class vocabulary. The M0 species-prevalence baseline controls for improvement beyond class frequency alone.
+
+*TODO: Condense the strongest Assignment 1 EDA findings and cite the original evidence: class imbalance; seasonal signal; multicollinearity in climate BIO predictors; geographical clustering. State inclusion/exclusion decisions and ethical/geoprivacy considerations.*
+
+# Modelling and validation methodology
+
+The feature sets are: **M0**, no contextual variables; **M1**, four cyclical temporal terms; **M2**, M1 plus 21 climate terms; **M3**, M2 plus elevation; and **M4**, M3 plus latitude and longitude.
+
+All classifiers share the same 242,600 observations, 18 species and three outer folds under both validation regimes. Random folds are class-stratified. Spatial folds group all observations from each 0.5° geographic cell. Hyperparameters are selected only on the preassigned inner fit/tune split of each development fold; assessment data are held out. Feature scaling, PCA and other estimated transformations must be fitted using training rows only.
+
+*TODO: Describe each final model's hyperparameter grid and preprocessing. Explain why geographic blocking is a useful, imperfect test of spatial generalisation, and clarify that records in neighbouring spatial cells may remain dependent.*
+
+# Results and model comparison
+
+## Primary M4 spatial model selection
+
+```{r m4-table}
+display <- leaderboard[, c("rank", "model_label", "macro_f1_mean", "macro_f1_sd",
+                           "accuracy_mean", "balanced_accuracy_mean",
+                           "top3_accuracy_mean", "mrr_mean")]
+knitr::kable(display, digits = 3,
+             col.names = c("Rank", "Model", "Macro-F1", "Fold SD", "Accuracy",
+                           "Balanced accuracy", "Top-3", "MRR"),
+             caption = "M4 spatial cross-validation, unweighted mean of three outer folds")
+```
+
+```{r macro-f1-figure, fig.cap="Random and spatial validation comparisons. Whiskers show fold standard deviations, not confidence intervals."}
+knitr::include_graphics(file.path(figures, "report_m4_macro_f1.png"))
+```
+
+*TODO: Interpret results based on primary Macro-F1, then check whether the ranking is consistent with Top-3, MRR, fold variability and practical considerations. Report uncertainty as fold variation; do not make unsupported significance claims from three folds.*
+
+## Sensitivity to geographic coordinates (M3 versus M4)
+
+```{r coordinate-table}
+knitr::kable(effects[, c("model", "regime", "delta_macro_f1_mean",
+                          "delta_macro_f1_sd", "folds_m4_better")],
+             digits = 3, caption = "Paired M4–M3 Macro-F1 differences on identical outer folds")
+```
+
+```{r coordinate-figure, fig.cap="Change in Macro-F1 after adding coordinates (M4 minus M3)."}
+knitr::include_graphics(file.path(figures, "report_m3_m4_effect.png"))
+```
+
+*TODO: State observed gains and fold inconsistency, distinguishing predictive utility from causal evidence.*
+
+## Species-level assessment
+
+```{r species-figure, fig.cap="Mean class-level F1 on spatial assessment folds for the currently leading model."}
+knitr::include_graphics(file.path(figures, "report_leader_species_f1.png"))
+```
+
+*TODO: Identify weaker-performing species, particularly geographically concentrated or less frequent species, using saved support and per-class metrics. Discuss implications of class imbalance.*
+
+# Interpretation, limitations and responsible use
+
+*TODO: Compare model behaviour under random and spatial splitting; explain the possible effect of locality and sampling bias. Discuss unequal observer effort, observation-only labels, representativeness, spatial leakage at cell boundaries, uncertain extrapolation, probability calibration and location privacy. Do not treat this as verified acoustic species identification.*
+
+# Data–Information–Presentation (DIP) process reflection
+
+*TODO: Explain the group's actual iterative process with dated evidence: data preparation; EDA findings that shaped feature engineering; model-family choices; evaluation feedback; revisions to the pipeline; teamwork and trade-offs; what changed after seeing spatial validation. Include genuine successes and limitations.*
+
+# Reproducibility and references
+
+Reproduce the saved figures and comparison tables by running `R/reporting/01_build_model_comparison.R` from the repository root. The analysis environment is specified in `renv.lock`; frozen fold IDs are stored in `data/processed/frog_modelling_folds.rds`. Model-fitting scripts under `R/modelling/` produce the underlying fold, class and tuning outputs. **Rendering this document does not fit models.**
+
+*TODO: Add exact package versions, platform, seeds, key preprocessing decisions and compute constraints. Add properly formatted APA 7 references for the dataset, packages and methodological sources. Add the required declaration of any AI assistance, describing its use and human verification accurately.*
