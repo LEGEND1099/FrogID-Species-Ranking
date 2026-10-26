@@ -1,0 +1,94 @@
+/* STAT5003 report: quiet publication palette. Screen and print friendly. */
+:root { --frog-blue: #27679C; --frog-orange:#D87537; --frog-ink:#263645; }
+body { color: var(--frog-ink); line-height:1.48; }
+h1 {color:#234D70; font-weight:700; border-bottom:2px solid #D9E4EC;
+    padding-bottom:.16em; margin-top:1.65em; }
+h2 {color:#315A79; font-weight:650; margin-top:1.35em; }
+strong {font-weight:700;}
+#title-block-header .title {color:var(--frog-blue); font-weight:750;}
+#title-block-header .subtitle {color:#5D6B79;}
+figure, .quarto-figure {margin:1em auto 1.15em auto; text-align:center;}
+figcaption, .figure-caption, .table-caption {font-size:.87em;color:#506374;
+  line-height:1.38;text-align:left;}
+.cell {margin-top:.6em; margin-bottom:.75em;}
+.cell-output-display img {max-width:100%; height:auto; object-fit:contain;}
+table {font-size:.87em; width:100%; border-collapse:collapse; }
+thead {border-bottom:2px solid var(--frog-blue);}
+th {color:#244D70; font-weight:650;}
+th,td {padding:.28em .38em; vertical-align:top;}
+tbody tr:nth-child(even) {background:#F4F7F9;}
+a {color:var(--frog-blue);}
+details {border:1px solid #D5E1EA; border-radius:5px;
+  padding:.1em .6em; margin:.5em 0;}
+summary {color:#37688E;cursor:pointer;}
+.callout-note {border-left-color:var(--frog-blue);}
+/* Compact A4 print style, adapted from the successful Assignment 1 approach.
+   Folded R code remains accessible in HTML but is not expanded in print. */
+@media print {
+  @page { size: A4; margin: 0.32in 0.38in 0.32in 0.38in; }
+  html, body { background: white !important; }
+  body, main, .content, .quarto-title, p, li, td, th, blockquote,
+  .cell-output, figcaption, .figure-caption {
+    font-family: "Times New Roman", Times, serif !important;
+    font-size: 8.5pt !important;
+    line-height: 1.24 !important;
+    -webkit-font-smoothing: antialiased !important;
+    text-rendering: optimizeLegibility !important;
+  }
+  body, p, li, blockquote { text-align: justify !important; }
+  main, #quarto-content, .page-columns, .content { max-width: 100% !important; }
+  #title-block-header { margin: 0 0 5pt !important; padding: 0 !important; }
+  #title-block-header .title, h1.title {
+    font-size: 15pt !important; line-height: 1.1 !important;
+    margin: 3pt 0 !important; padding: 0 !important;
+  }
+  h1 { font-size: 12.5pt !important; margin: 7pt 0 3pt !important;
+       padding-bottom: 1pt !important; break-after: avoid; }
+  h2 { font-size: 10.2pt !important; margin: 5pt 0 2pt !important;
+       break-after: avoid; }
+  h3 { font-size: 9.1pt !important; margin: 3pt 0 1pt !important;
+       break-after: avoid; }
+  h4 { font-size: 8.8pt !important; margin: 2pt 0 1pt !important;
+       break-after: avoid; }
+  p { margin: 2pt 0 !important; }
+  ul, ol { margin: 2pt 0 2pt 13pt !important; padding-left: 8pt !important; }
+  li { margin-bottom: 1pt !important; }
+  hr { margin: 3pt 0 !important; }
+  section, .section { margin-bottom: 2pt !important; }
+  table { width: 100% !important; border-collapse: collapse !important;
+          margin: 3pt 0 4pt !important; font-size: 8.0pt !important; }
+  th, td { padding: 2pt 3pt !important; line-height: 1.14 !important;
+           font-size: 8.0pt !important; text-align: left !important; }
+  figure, .quarto-figure, .cell { margin: 3pt 0 4pt !important; }
+  .cell-output-display { overflow: visible !important; max-height: none !important;
+                         margin: 2pt 0 !important; }
+  .cell-output-display img, .quarto-figure img {
+    display: block !important; max-width: 100% !important;
+    width: auto !important; height: auto !important;
+    max-height: 2.7in !important; object-fit: contain !important;
+    margin: 2pt auto !important;
+  }
+  /* The wider 6x3 geographic map can use a little more vertical room. */
+  #why-geographic-context-may-inflate-random-fold-performance .cell-output-display img {
+    max-height: 3.45in !important;
+  }
+  /* Keep labels visible in the 18-species, five-model heatmap. */
+  #from-the-macro-f1-leader-to-the-final-recommendation .cell-output-display img {
+    max-height: 4.10in !important;
+  }
+  figcaption, .figure-caption, .quarto-figure figcaption {
+    font-size: 7.7pt !important; line-height: 1.18 !important;
+    margin: 1pt 0 3pt !important; text-align: left !important;
+  }
+  pre, code, .sourceCode, tt { font-family: "Courier New", Courier, monospace !important;
+                              font-size: 7pt !important; line-height: 1.1 !important; }
+  /* Folded code is inspectable in electronic HTML, excluded from printed body. */
+  details, .code-fold-btn, details summary { display: none !important; }
+  #TOC, .sidebar, nav[role="doc-toc"], .quarto-sidebar-container,
+  #quarto-margin-sidebar { display: none !important; }
+  .quarto-title-meta { font-size: 7.5pt !important; margin: 2pt 0 !important; }
+  p, li { orphans: 2; widows: 2; }
+  figure, .quarto-figure, .cell-output-display, table, tr { break-inside: avoid; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  .callout { margin: 3pt 0 !important; padding: 3pt 5pt !important; }
+}

@@ -1,6 +1,6 @@
 ---
-title: "FrogID species ranking: model selection under spatial validation"
-subtitle: "STAT5003 Assignment 2 — Group W11G03"
+title: "FrogID species ranking: geographic transfer and species coverage"
+subtitle: "STAT5003 Assignment 2 | Group W11G03"
 author: "Group W11G03"
 date: "2026-10-26"
 format:
@@ -10,112 +10,272 @@ format:
     code-fold: true
     code-summary: "Show analysis code"
     embed-resources: true
+    css: report_style.css
 execute:
-  echo: false
+  echo: true
   warning: false
   message: false
 ---
 
 ```{r setup}
-# All computationally expensive model fits are run separately.
-# This Quarto document reads the versioned model-comparison artifacts only.
+# Report rendering is read-only. Models and fold assignments are frozen and
+# results were produced beforehand by scripts under R/modelling/.
 suppressPackageStartupMessages({
   library(readr)
   library(knitr)
 })
-repo_root <- if (file.exists("renv.lock")) normalizePath(".") else normalizePath("..")
-tables <- file.path(repo_root, "outputs", "tables")
-figures <- file.path(repo_root, "outputs", "figures")
-load_table <- function(name) {
-  path <- file.path(tables, name)
-  if (!file.exists(path)) {
-    stop("Missing reporting artifact: ", path,
-         ". Run R/reporting/01_build_model_comparison.R first.")
-  }
-  read_csv(path, show_col_types = FALSE)
+repo_root <- if (file.exists('renv.lock')) normalizePath('.') else normalizePath('..')
+tables <- file.path(repo_root, 'outputs', 'tables')
+figures <- file.path(repo_root, 'outputs', 'figures')
+load_table <- function(filename) {
+  p <- file.path(tables, filename)
+  if (!file.exists(p)) stop('Missing saved analysis: ', p)
+  read_csv(p, show_col_types = FALSE)
 }
-leaderboard <- load_table("report_m4_spatial_leaderboard.csv")
-summary <- load_table("report_model_summary.csv")
-effects <- load_table("report_m3_m4_effect.csv")
-species <- load_table("report_m4_spatial_species.csv")
+figure <- function(name) {
+  p <- file.path(figures, name)
+  if (!file.exists(p)) stop('Missing figure: ', p,
+     '\nRun R/reporting/03_batch12_visuals.R first.')
+  knitr::include_graphics(p)
+}
+leaderboard <- load_table('report_m4_spatial_leaderboard.csv')
+summary <- load_table('report_model_summary.csv')
+effects <- load_table('report_m3_m4_effect.csv')
+equity <- load_table('report_species_equity_scorecard.csv')
 ```
 
 # Executive summary
 
-**Research question.** How accurately can 18 frog species be ranked using seasonal, environmental and geographic observations, and how much does model performance change under geographically separated assessment?
+**Question.** How effectively can seasonal, environmental and geographic context rank 18 Australian FrogID species, and do conclusions survive assessment in different geographic cells?
 
-**Data.** We assess 242,600 complete-case FrogID recording events across 18 species with the common predictors and fixed three-fold validation splits.
-
-**Model selection rule.** Primary: mean M4 spatial Macro-F1. Secondary: top-3 accuracy, balanced accuracy, MRR, model stability and interpretability. The winner is provisional until all five classifier families are complete.
-
-*TODO before submission: write a 90–120-word summary of the final winner, main quantitative results, consequences and limits. Do not claim inference beyond these observational data.*
+We tested five classifier families on **242,600** complete-case recordings, with identical three-fold random and 0.5° spatially grouped evaluations. Spatial performance was substantially lower than random-fold performance. XGBoost marginally led the predefined M4 spatial Macro-F1 leaderboard (**0.352 versus 0.349** for Random Forest); the difference was small relative to the limited three-fold assessment. Motivated partly by an imbalance-correction sensitivity study, we then examined per-species results. **Random Forest M4 is our recommended shortlist model**: compared with XGBoost, it achieved stronger aggregate recall and Top-3 coverage for the six least-recorded species, while remaining closely competitive overall. Neither model is reliable across every species; these are contextual rankings, **not acoustic identification, species-abundance estimates or conservation-grade predictions**.
 
 # Problem, data and exploratory findings
 
-The task is multiclass species ranking, not species-presence estimation. The classifiers are evaluated on the same complete-case events and 18-class vocabulary. The M0 species-prevalence baseline controls for improvement beyond class frequency alone.
+FrogID records represent **citizen-science recording events**, not uniform surveys of ecological abundance (Australian Museum, 2026). The target is an 18-class `scientificName` label. A prevalence-only baseline tests whether models provide more information than simply ranking the most recorded species first. Environmental data are incomplete for **4,806 of 247,406** selected recordings (1.94%); we retained the same **242,600 complete-case events** for all core comparisons so model differences cannot be explained by changes in cohort membership. Exclusions are geographically concentrated, limiting the populations to which findings can be generalised.
 
-*TODO: Condense the strongest Assignment 1 EDA findings and cite the original evidence: class imbalance; seasonal signal; multicollinearity in climate BIO predictors; geographical clustering. State inclusion/exclusion decisions and ethical/geoprivacy considerations.*
+## Why a majority-class result is insufficient
 
-# Modelling and validation methodology
+The most recorded class (*Crinia signifera*) represents **35.5%** of complete-case events; the two most recorded species represent **53.4%**, and the five most recorded **71.8%**. The largest class has about **41 times** as many examples as the smallest. Accuracy alone would reward predicting dominant labels repeatedly; our primary **Macro-F1** averages species-specific precision–recall F1 scores equally (Sokolova & Lapalme, 2009). We also assess per-species recall and Top-3 shortlist coverage.
 
-The feature sets are: **M0**, no contextual variables; **M1**, four cyclical temporal terms; **M2**, M1 plus 21 climate terms; **M3**, M2 plus elevation; and **M4**, M3 plus latitude and longitude.
+```{r frequency-figure, fig.cap="Complete-case class counts, ordered by frequency. Counts represent recording activity, not ecological population size."}
+figure('report_v1_species_frequency.png')
+```
 
-All classifiers share the same 242,600 observations, 18 species and three outer folds under both validation regimes. Random folds are class-stratified. Spatial folds group all observations from each 0.5° geographic cell. Hyperparameters are selected only on the preassigned inner fit/tune split of each development fold; assessment data are held out. Feature scaling, PCA and other estimated transformations must be fitted using training rows only.
+## Why geographic context may inflate random-fold performance
 
-*TODO: Describe each final model's hyperparameter grid and preprocessing. Explain why geographic blocking is a useful, imperfect test of spatial generalisation, and clarify that records in neighbouring spatial cells may remain dependent.*
+Exploratory analysis found that **30.2%** of recording events occur at exact coordinates observed more than once, while the ten busiest 0.5° cells account for **40.1%** of records. Species occupy heterogeneous observed geographic footprints. Several species are concentrated in very few cells, so ordinary random folds may train and test on effectively familiar localities. Environmental predictors also have geographic structure. These findings motivated grouped spatial assessment and the M3-versus-M4 coordinate test (Roberts et al., 2017; Valavi et al., 2019).
+
+```{r footprint-figure, fig.cap="Descriptive 0.5-degree recording footprints for all 18 species. Uneven recording effort affects these patterns; tiles are not authoritative ecological range maps."}
+figure('report_v1_geographic_footprints.png')
+```
+
+**EDA-to-decision chain.** Class imbalance led to Macro-F1 and per-species checks; geographic clustering led to spatial blocking; strongly correlated BIO variables led to regularisation or training-fold PCA for relevant models; cyclic seasonality led to sine/cosine calendar features. None of these associations alone establishes causal ecological relationships.
+
+# Investigation design and modelling
+
+## Feature-set progression: M0 to M4
+
+Rather than presenting unexplained codes, each feature set adds a defined contextual block to the previous one.
+
+| Feature set | Predictor block | Variables | Role |
+|:--|:--|--:|:--|
+| **M0** | Training-fold species prevalence | 0 | Trivial ranking baseline |
+| **M1** | Cyclic month and day-of-year | 4 | Seasonal context alone |
+| **M2** | M1 + BIO1–BIO19 + monthly climatological temperature and precipitation | 25 | Climate signal beyond season |
+| **M3** | M2 + elevation | 26 | Full environmental/seasonal context, **no coordinates** |
+| **M4** | M3 + latitude and longitude | 28 | Measure incremental explicit geographic signal |
+
+**Why later model families focus on M3/M4.** The initial feature progression was executed using elastic-net from M1 through M4. Its spatial Macro-F1 rose from **0.054 (M1)** to **0.261 (M2)**, with no meaningful additional gain from elevation alone (**0.259 for M3**); M4 reached **0.266**. We therefore concentrated the computationally expensive five-family benchmark on the most decision-relevant comparison: **M3 versus M4**, holding the environmental context fixed and adding only explicit coordinates. The original planning handoff proposed a broader nonlinear M1–M4 progression, but **XGBoost was actually evaluated on M3/M4 only**. We do not represent the unrun earlier XGBoost feature sets as completed work.
+
+## Two validation questions, one common protocol
+
+The **random** regime uses class-stratified event-level folds and can place recordings from the same coarse geographic cell on both sides of a split. The **spatial** regime keeps every event from each **0.5° cell together**, asking how performance transfers to held-out cells. Both use three frozen outer folds; each development fold contains an **80/20 inner fit/tune split** for selecting hyperparameters. The inner split follows the outer regime. Transformations such as scaling or PCA are estimated on fit/development data only, never the held-out assessment fold.
+
+```{r validation-figure, fig.cap="Conceptual validation schematic (not a geographic map or actual fold assignment). Random splitting permits shared geographic cells; grouped spatial assessment holds out entire 0.5-degree cells."}
+figure('report_v1_validation_schematic.png')
+```
+
+Spatial grouping prevents exact **same-cell overlap**, but not dependence between adjacent cells or imbalanced regional species distributions (Roberts et al., 2017). Fold SD describes variation across only three folds; it is **not** a confidence interval or a significance test.
+
+## Five classifiers: distinct assumptions, one comparison
+
+The five families span regularised linear effects, Gaussian separation, local similarity and two nonlinear tree ensembles (Breiman, 2001; Chen & Guestrin, 2016). Climate variables include a near-exact BIO5/BIO6/BIO7 dependency, so **elastic-net regularises correlated coefficients**, **LDA/kNN use training-only environmental PCA**, and **tree methods retain original numeric predictors**. Model-specific transformations are fitted inside each training partition; no global scaling or PCA was applied before splitting.
+
+| Model | Fit / transformation | Inner-tuning search (actual implementation) |
+|:--|:--|:--|
+| **Elastic-net** | Standardised multinomial regression | α = 0, 0.5, 1; up to 30 λ values per α (ratio 10⁻⁴) |
+| **PCA-LDA** | Environmental PCA + scaled seasonal/location terms | PCs explaining ≥95% of training variance; also +2 or +4 PCs |
+| **PCA-kNN** | Environmental PCA + scaled other predictors | k = 7, 21, 51; ≥95%-variance PCs or +2 PCs |
+| **Random Forest** | 200-tree probabilistic forest; no scaling | `mtry` = 5, 10 × minimum node size = 5, 20 (4 combinations) |
+| **XGBoost** | Multiclass boosted trees; no scaling | Depth = 3, 6 × η = 0.07, 0.15 × minimum child weight = 2, 8 (8 combinations); ≤300 rounds |
+
+## Why these parameters: questions raised by the EDA
+
+The search grids above were **bounded experiments**, not claims of globally optimal settings. Their ranges were chosen to contrast interpretable levels of model flexibility while keeping repeated fitting feasible on a 242,600-event, 18-class dataset. Our EDA suggested four specific difficulties: correlated climate variables, cyclical seasonal effects, strongly unequal class counts and geographic structure. We therefore varied the controls most likely to affect how each classifier handles those difficulties. **Candidates were chosen using inner-split Macro-F1 under the matching validation regime**; outer-fold spatial Macro-F1 was reserved for assessment, not used to revise these grids.
+
+**Elastic-net — how much regularisation, and what kind?** The mixing parameter **α** determines whether coefficients are predominantly shrunk together (**0: ridge**), partly sparsified (**0.5: elastic-net**) or more aggressively removed (**1: lasso**). This mattered because BIO5, BIO6 and BIO7 are highly dependent, while season and climate may contain jointly useful signals. Ridge was expected to be less sensitive to correlated predictors; lasso offered a more parsimonious model; the midpoint tested a compromise. The **λ** penalty controls *how strongly* terms are shrunk, so up to 30 values on a broad regularisation path (minimum ratio 10⁻⁴) tested a progression from simpler to less constrained fits. Under M4 spatial tuning, α varied between 0.5 and 1 across folds; retaining many coefficients suggests that aggressive elimination was not consistently favoured. Some candidates reached the weak-penalty end of the path, a reason to qualify—not exaggerate—the grid's completeness.
+
+**PCA-LDA — how much climate information should be compressed?** LDA assumes approximately Gaussian species-specific predictors with shared within-class covariance. The environmental block contains **22 correlated variables**, so direct LDA risks unstable covariance estimation and redundant dimensions. We fit PCA **only on training records** for these 22 variables, using the number of components needed to retain at least **95% of their variance** as an interpretable starting point. Adding **2 or 4 PCs** tests whether weaker-variance directions still help distinguish species; variance captured is not itself a measure of discriminative power. Four cyclic seasonal terms (and, for M4, two coordinates) are standardized separately and never absorbed into environmental PCA. M4 spatial refits retained **11, 8 and 7 PCs** across folds, showing that the useful compression differed between geographic development partitions.
+
+**PCA-kNN — how local should a 'similar recording' be?** The EDA's clustered locations and unbalanced classes suggested that very small neighbourhoods might be noisy, while larger ones could be dominated by frequent species or blur local species differences. We therefore contrasted **k = 7, 21 and 51**: relatively local, moderate and heavily smoothed voting. Environmental PCA again begins at **95% explained variance**, with **+2 PCs** testing whether extra dimensions recover distinctions lost through compression. Standardising non-environmental features and rescaling retained PC scores prevents high-variance variables from automatically dominating distances. Random M4 folds all selected **k = 7**; spatial M4 folds selected **21, 21 and 7** on their inner tuning partitions. This is consistent with some preference for smoothing under geographically grouped validation, but does not prove that any one neighbourhood size is universally best.
+
+**Random Forest — how diverse and how detailed should individual trees be?** The number of variables considered at each split, **`mtry`**, trades forest diversity against the opportunity to use strongly informative predictors. With **28 M4 inputs**, **5 is near √28**, a common classification starting point; **10** tests whether exposing almost twice as many variables helps in this structured environmental setting. **`min.node.size`** (5 versus 20) tests finer local decision regions against smoother terminal-node probabilities, relevant to geographically clustered events and low-support classes. We fixed **200 bootstrap trees** as a tractable first-round ensemble size rather than treating it as an optimised value. All three M4 spatial folds selected **node size 5**; `mtry` was **5, 5 and 10**. That supports using finer partitions *within this tested grid* but does not establish the best leaf size or forest size outside it.
+
+**XGBoost — interaction complexity versus geographic overfitting.** Tree **`max_depth`** (3 versus 6) tests simple rules against deeper interactions among season, climate and location, which a linear model cannot readily express. **`eta`** (0.07 versus 0.15) is the boosting learning rate: smaller steps may generalise more cautiously but need more rounds; larger steps learn faster with potentially greater overfit. **`min_child_weight`** (2 versus 8) places a lower bound on a child's accumulated second-order weight, restricting poorly supported splits rather than specifying a minimum number of recordings. We held row and predictor subsampling at **0.85**, L2 penalty at **1**, and the training ceiling at **300 rounds** so the eight depth–rate–child-weight combinations remained interpretable and affordable. Inner-validation **log loss** determines early stopping (25-round patience), then **inner Macro-F1** chooses the candidate; the final model is refitted using the selected round count. For M4 spatial folds, **depth 6 and child weight 8** were selected each time, but training stopped at **58, 82 and 121 rounds**. Random folds instead reached the 300-round cap. This contrast is evidence that model complexity and stopping behaviour depend on the validation regime; it does **not** prove that 300 rounds is optimal or that the spatial winner transfers everywhere.
+
+**What we learned from the grid boundaries.** PCA dimensions and k changed across spatial folds; RF consistently preferred smaller tested nodes; the XGBoost round cap bound the random-fold search. These are **diagnostics informing future experiments**, not additional hyperparameter optimisation against the held-out folds. A second phase could examine finer RF leaves or forest-size stability, larger XGBoost boosting ceilings and improved minority-species handling, but none of these unrun experiments is counted in Version 1.
+
+All algorithms use the **same 18 classes, 242,600 events and outer folds**. Within each outer development partition, an inner split selects hyperparameters by **Macro-F1**. The selected configuration is refitted on that outer development partition and scored *once* on the held-out assessment partition. For XGBoost, early stopping uses **inner-validation log loss** (25-round patience) before candidate selection by inner Macro-F1; early stopping does not use outer-fold labels.
+
+```{r protocol-code-excerpt, eval=FALSE}
+# Read-only excerpt adapted from R/modelling/04_pca_lda.R.
+# The same frozen outer/inner fold structure is reused by all five models.
+outer <- folds[[paste0(regime, "_fold")]]
+inner <- folds[[paste0(regime, "_inner_", k)]]
+fit_rows    <- which(inner == "fit")
+tune_rows   <- which(inner == "tune")
+dev_rows    <- which(outer != k)
+assess_rows <- which(outer == k)
+# Fit transformations and candidates on fit_rows; compare on tune_rows;
+# refit the chosen configuration on dev_rows; assess on assess_rows once.
+```
+
+**Tuning implementation note.** Elastic-net required a higher solver iteration limit to recover its intended regularisation path; results come from the corrected fitting run. The selected RF tree count was **not** separately optimised, and reaching the XGBoost boosting ceiling should be disclosed as a search limitation. The grids and fold-specific selections can be inspected in the committed `model_*_tuning.csv` and `model_*_selected.csv` tables; neither is estimated afresh when this report renders.
+
+### Spatial-tuning outcomes at a glance
+
+| Family | M4 spatial settings selected across outer folds 1 / 2 / 3 | EDA-informed interpretation |
+|:--|:--|:--|
+| **Elastic-net** | α: **0.5 / 1 / 0.5** | Regularisation type changed across regional splits; correlated climate effects do not favour a single penalty mixture everywhere. |
+| **PCA-LDA** | Refit environmental PCs: **11 / 8 / 7** | The dimensionality retaining environmental signal changes with geography. |
+| **PCA-kNN** | k: **21 / 21 / 7**; refit PCs: **8 / 9 / 9** | Moderate smoothing was favoured by inner tuning in two of three spatial splits. |
+| **Random Forest** | `mtry`: **5 / 5 / 10**; node size: **5 / 5 / 5** | Local detail mattered within the tested four-combination grid. |
+| **XGBoost** | Depth: **6 / 6 / 6**; child weight: **8 / 8 / 8**; rounds: **58 / 82 / 121** | Deeper interactions, regularised splits and early stopping were selected for spatial transfer. |
+
+*These are inner-selected settings, reported by outer fold—not settings chosen after viewing outer assessment scores. They are not evidence of a single universally optimal configuration.*
+
+```{r refinement-code-excerpt, eval=FALSE}
+# Illustrative verbatim search settings from the saved modelling scripts;
+# shown for inspection only, and NEVER executed by report rendering.
+# R/modelling/06_random_forest.R:
+n_trees <- 200L
+mtry_grid <- c(5L, 10L)
+node_grid <- c(5L, 20L)
+# R/modelling/05_pca_knn.R:
+k_grid <- c(7L, 21L, 51L)
+pc_offsets <- c(0L, 2L)  # offsets above the training-only 95% PCA count
+```
+
+**Evaluation before selection.** A prevalence-only M0 baseline achieves spatial Macro-F1 around **0.029**, despite about **35.6%** overall accuracy: predicting only the dominant species can look plausible by accuracy. Therefore, the predeclared **primary selection metric is mean spatial Macro-F1** (not 35% accuracy when reported as 0.35). Balanced accuracy assesses mean species recall; **Top-3/Top-5 and mean reciprocal rank (MRR)** measure the usefulness of a shortlist. Per-species F1, recall and Top-3 recall expose failure modes hidden by model averages. Primary training preserved natural species frequencies; the separately evaluated probability correction is reported below.
 
 # Results and model comparison
 
-## Primary M4 spatial model selection
+## Geographic separation changes the conclusions
 
 ```{r m4-table}
-display <- leaderboard[, c("rank", "model_label", "macro_f1_mean", "macro_f1_sd",
-                           "accuracy_mean", "balanced_accuracy_mean",
-                           "top3_accuracy_mean", "mrr_mean")]
-knitr::kable(display, digits = 3,
-             col.names = c("Rank", "Model", "Macro-F1", "Fold SD", "Accuracy",
-                           "Balanced accuracy", "Top-3", "MRR"),
-             caption = "M4 spatial cross-validation, unweighted mean of three outer folds")
+shown <- leaderboard[, c('rank','model_label','macro_f1_mean','macro_f1_sd',
+                            'accuracy_mean','top3_accuracy_mean')]
+knitr::kable(shown, digits=3,
+  col.names=c('Rank','Model','Macro-F1','Fold SD','Accuracy','Top-3'),
+  caption='M4 spatial validation; unweighted mean across three assessment folds')
 ```
 
-```{r macro-f1-figure, fig.cap="Random and spatial validation comparisons. Whiskers show fold standard deviations, not confidence intervals."}
-knitr::include_graphics(file.path(figures, "report_m4_macro_f1.png"))
+```{r m4-figure, fig.cap="Same models and M4 features under random and geographically grouped cross-validation. Whiskers denote fold standard deviation, not uncertainty intervals."}
+figure('report_v1_m4_comparison.png')
 ```
 
-*TODO: Interpret results based on primary Macro-F1, then check whether the ranking is consistent with Top-3, MRR, fold variability and practical considerations. Report uncertainty as fold variation; do not make unsupported significance claims from three folds.*
+**Finding.** Random Forest leads under random folds (**0.692 Macro-F1**), but XGBoost narrowly leads spatial Macro-F1 (**0.352 versus 0.349**). Relative to XGBoost's spatial result, its own random-fold score is **0.656**: this large regime gap is why random validation cannot support broad geographic-transfer claims. XGBoost has slightly better average spatial accuracy and Top-3 performance, while Random Forest has stronger aggregate outcomes for the least-recorded species (below).
 
-## Sensitivity to geographic coordinates (M3 versus M4)
+## What explicit coordinates add beyond context (M3 versus M4)
 
-```{r coordinate-table}
-knitr::kable(effects[, c("model", "regime", "delta_macro_f1_mean",
-                          "delta_macro_f1_sd", "folds_m4_better")],
-             digits = 3, caption = "Paired M4–M3 Macro-F1 differences on identical outer folds")
+```{r coordinate-figure, fig.cap="Paired fold differences in Macro-F1 from adding latitude/longitude to the environmental and seasonal feature set. Values are averaged over identical assessment folds."}
+figure('report_v1_coordinate_effect.png')
 ```
 
-```{r coordinate-figure, fig.cap="Change in Macro-F1 after adding coordinates (M4 minus M3)."}
-knitr::include_graphics(file.path(figures, "report_m3_m4_effect.png"))
+M4 adds latitude/longitude to the 26 M3 predictors. Spatial Macro-F1 improves by **+0.025 for XGBoost** (0.327 → 0.352), but only **+0.007 for Random Forest** (0.342 → 0.349). Coordinates remain predictive even for withheld cells, yet may proxy sampling effort or species-associated geography; these differences do **not** establish causal ecological effects.
+
+## From the Macro-F1 leader to the final recommendation
+
+Under our predeclared criterion, **XGBoost M4 ranks first (0.352)** and **Random Forest M4 second (0.349)**. We do not claim a significant difference from just three spatial folds. Earlier imbalance-correction results had already shown the cost of improving rare-class recovery at the expense of shortlist utility; this motivated a **post-hoc species-level audit** when the leading models were nearly tied. The audit is descriptive, **not a pre-registered tie-breaker or independent test set**.
+
+Across the **six least-recorded** species, Random Forest had higher mean F1 (**0.366 versus 0.352**), mean recall (**0.401 versus 0.365**) and Top-3 recall (**0.775 versus 0.740**) than XGBoost. It also had a higher minimum species F1 (**0.038 versus 0.023**) and higher average F1 for the six worst-performing species (**0.157 versus 0.150**). However, XGBoost attained higher F1 on **12 of the 18 individual species** and slightly better overall accuracy and ranking metrics. Neither method eliminates weak-class errors.
+
+```{r species-figure, fig.cap="Per-species mean spatial F1 for all five models. * flags the six least-recorded species, defined from observed class support rather than model performance. Green represents higher F1; printed values remain readable without colour."}
+figure('report_v1_species_equity_heatmap.png')
 ```
 
-*TODO: State observed gains and fold inconsistency, distinguishing predictive utility from causal evidence.*
+**Final recommendation: Random Forest M4** for a shortlist workflow prioritising broader coverage of less-recorded and difficult species. It sacrifices **0.003 spatial Macro-F1** and small overall ranking advantages to XGBoost, but improves the average of the six least-recorded species' recall by **3.6 percentage points** and their Top-3 recall by **3.5 points**. We explicitly distinguish this **application-informed recommendation** from the original Macro-F1 winner (XGBoost); neither model is demonstrably superior on all species.
 
-## Species-level assessment
+## Imbalance-correction sensitivity: a trade-off, not a free improvement
 
-```{r species-figure, fig.cap="Mean class-level F1 on spatial assessment folds for the currently leading model."}
-knitr::include_graphics(file.path(figures, "report_leader_species_f1.png"))
+The class imbalance motivated a separate, properly nested **elastic-net prevalence-correction** experiment (not oversampling, undersampling or SMOTE). Predicted species probabilities were adjusted by development-fold class prevalence raised to a strength parameter γ. In each inner split γ was selected from **{0, 0.5, 1}**; all six M4 outer folds selected **0.5**. The original assessment distribution was preserved.
+
+Spatial elastic-net Macro-F1 increased from **0.266 to 0.344** and balanced accuracy from **0.280 to 0.397**, but accuracy fell from **0.497 to 0.448**, Top-3 accuracy from **0.837 to 0.811** and MRR from **0.683 to 0.647**. The improved detection of some less-recorded species came with more erroneous predictions and weaker shortlist rankings.
+
+```{r imbalance-tradeoffs, fig.cap="Nested elastic-net M4 correction: stronger species-balanced classification versus lower overall accuracy and ranking performance. Results do not measure resampling or effects on tree models."}
+figure('class_imbalance/prior_correction_nested_tradeoffs.jpeg')
 ```
 
-*TODO: Identify weaker-performing species, particularly geographically concentrated or less frequent species, using saved support and per-class metrics. Discuss implications of class imbalance.*
+```{r imbalance-recall, fig.cap="Class-wise change in spatial recall after elastic-net correction (γ=0.5 minus no correction). Some species gain substantially; the two dominant species lose recall. Recorded frequency is not conservation rarity."}
+figure('class_imbalance/prior_correction_species_recall.jpeg')
+```
+
+The correction was **not** adopted in the primary models because it reduced shortlist ranking quality on the tested elastic-net pipeline. We nevertheless carried forward its lesson—minority coverage matters even when another metric worsens—into the near-tie species audit that favoured the RF recommendation. **This was probability/prior correction, not resampling**; weighting, SMOTE and the same correction on tree models were not evaluated, so no universal claim about sampling is warranted.
+
+::: {.callout-note collapse="true"}
+### Additional sensitivity curve
+
+For completeness, the exploratory correction-strength curve is retained below. Unlike the nested M4 test, this initial figure rescored saved outer assessment predictions and was **not used to choose γ**.
+
+```{r imbalance-curves, fig.cap="Exploratory correction-strength profiles (γ = 0, 0.5 and 1); descriptive assessment-set sensitivity only, not a parameter-selection procedure."}
+figure('class_imbalance/prior_correction_metric_curves.jpeg')
+```
+:::
 
 # Interpretation, limitations and responsible use
 
-*TODO: Compare model behaviour under random and spatial splitting; explain the possible effect of locality and sampling bias. Discuss unequal observer effort, observation-only labels, representativeness, spatial leakage at cell boundaries, uncertain extrapolation, probability calibration and location privacy. Do not treat this as verified acoustic species identification.*
+The results support **context-based candidate shortlisting**, not autonomous frog-call identification. FrogID species labels come from submitted recordings and expert assessment; our classifiers receive **season, environment and optionally location**, **not audio** (Australian Museum, 2026). Even the recommended RF M4 reaches only **0.349 spatial Macro-F1**; the weakest species has mean F1 of approximately **0.038**. A high overall Top-3 score therefore cannot guarantee reliable identification for every species.
 
-# Data–Information–Presentation (DIP) process reflection
+**Transfer and sampling.** Random folds share familiar geographical contexts; spatial folds withhold 0.5° cells but do not buffer adjacent cells. The observations are opportunistic and concentrated: these evaluations neither estimate population abundance nor demonstrate continent-wide transfer. Three spatial folds provide limited precision, and we do not treat small model differences as statistically established.
 
-*TODO: Explain the group's actual iterative process with dated evidence: data preparation; EDA findings that shaped feature engineering; model-family choices; evaluation feedback; revisions to the pipeline; teamwork and trade-offs; what changed after seeing spatial validation. Include genuine successes and limitations.*
+**Coverage and modelling scope.** We excluded **1.94%** of records missing all 22 environmental predictors, with exclusions geographically clustered. This preserves a comparable cohort but limits coverage; imputation was not evaluated. The primary task covers **18 selected, single-species labels**; it does not establish performance for overlapping calls, unrepresented species or sensitive threatened-species records. Public geoprivacy and quality filters limit any conservation extrapolation. Correlated climate features complicate interpretation of model importance, which is **predictive, not causal**.
 
-# Reproducibility and references
+**Refinement not completed.** Search grids were deliberately bounded; RF tree count was fixed, kNN repeatedly selected its smallest candidate under random validation and XGBoost random folds reached the boosting-round ceiling. Imbalance weighting, resampling, calibration and larger geographic buffers remain suitable follow-up experiments—not results of Version 1.
 
-Reproduce the saved figures and comparison tables by running `R/reporting/01_build_model_comparison.R` from the repository root. The analysis environment is specified in `renv.lock`; frozen fold IDs are stored in `data/processed/frog_modelling_folds.rds`. Model-fitting scripts under `R/modelling/` produce the underlying fold, class and tuning outputs. **Rendering this document does not fit models.**
+# Data Investigation Process (DIP) reflection
 
-*TODO: Add exact package versions, platform, seeds, key preprocessing decisions and compute constraints. Add properly formatted APA 7 references for the dataset, packages and methodological sources. Add the required declaration of any AI assistance, describing its use and human verification accurately.*
+Our **Data Investigation Process** was iterative rather than a sequence of unrelated models:
+
+1. **Diagnose the data.** Strong class skew favoured an equal-species metric; repeated locations and spatially patterned climates challenged random-fold assumptions. Seasonal cycles and correlated BIO variables dictated cyclic encoding and fold-fitted regularisation/PCA.
+2. **Design fair tests.** We froze the 242,600-event cohort and both outer-fold systems *before* comparing families. The inner fit/tune split controlled hyperparameters; assessment folds remained separate. M3 versus M4 isolated the value of explicit location.
+3. **Investigate conflicting objectives.** An independently explored elastic-net prior correction improved Macro-F1 and rare-species recall but weakened overall Top-3/MRR. We retained natural-prevalence primary rankings, rather than assuming a single metric reflected every practical objective.
+4. **Revise the interpretation, not the held-out training.** XGBoost led spatial Macro-F1 by just 0.003. The subsequently reported species audit highlighted RF's better aggregate coverage of the least-recorded and weakest species; we recommended RF transparently as an application-informed near-tie choice, **without describing that post-hoc judgement as a new independent test**.
+
+The main lesson is that reproducible model fitting is necessary but insufficient: **validation design, class-level errors and the intended use determine what a result means**.
+
+# Conclusion
+
+Geographically grouped assessment materially reduces performance compared with random folds across all five families. Explicit coordinates improve several models but do not remove this limitation. XGBoost M4 wins the prespecified spatial Macro-F1 ranking (**0.352**); after a transparent, post-hoc species audit, **Random Forest M4** is our application-informed recommendation because its performance on less-recorded species is stronger and its overall performance is nearly tied. The defensible use is an expert-reviewed shortlist—not automatic identification or conservation inference.
+
+# Reproducibility, references and AI-use declaration
+
+**Reproduction.** Training outputs came from `R/modelling/01_build_folds.R` and `02`–`07` model scripts, with common seed **5003** and preserved assignments in `data/processed/frog_modelling_folds.rds`. Reporting is read-only: from the repository root, run `R/reporting/01_build_model_comparison.R`, `R/reporting/02_audit_species_equity.R`, and `R/reporting/03_batch12_visuals.R`, then `quarto render reports/STAT5003_A2_Report.qmd --to html`. The report embeds saved figures/tables and **never refits models**. Full modelling code is in the repository; the two folded methodological snippets above are illustrative **non-executing excerpts**. The separate prior-correction experiment is documented under `docs/experiments/class_imbalance/`; its original code/results must be archived alongside that README to make the sensitivity experiment independently rerunnable.
+
+## References (APA 7)
+
+Australian Museum. (2026). *Scientific outcomes from FrogID*. https://australian.museum/learn/collections/natural-science/herpetology/scientific-outcomes-frogid/
+
+Breiman, L. (2001). Random forests. *Machine Learning, 45*, 5–32. https://doi.org/10.1023/A:1010933404324
+
+Chen, T., & Guestrin, C. (2016). XGBoost: A scalable tree boosting system. In *Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining* (pp. 785–794). https://doi.org/10.1145/2939672.2939785
+
+Roberts, D. R., Bahn, V., Ciuti, S., Boyce, M. S., Elith, J., Guillera-Arroita, G., Hauenstein, S., Lahoz-Monfort, J. J., Schröder, B., Thuiller, W., Warton, D. I., Wintle, B. A., Hartig, F., & Dormann, C. F. (2017). Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure. *Ecography, 40*(8), 913–929. https://doi.org/10.1111/ecog.02881
+
+Sokolova, M., & Lapalme, G. (2009). A systematic analysis of performance measures for classification tasks. *Information Processing & Management, 45*(4), 427–437. https://doi.org/10.1016/j.ipm.2009.03.002
+
+Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G. (2019). blockCV: An R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. *Methods in Ecology and Evolution, 10*(2), 225–232. https://doi.org/10.1111/2041-210X.13107
+
+## AI-use declaration
+
+Generative AI tools assisted with planning, drafting/editing text, code suggestions and presentation of the investigation. Results reported here originate from the project's saved R model/evaluation outputs, not from AI-generated predictions. The group is responsible for verifying all calculations, citations, source code and interpretations. **The group must confirm that this declaration accurately describes its actual use and meets the unit's disclosure instructions before submission.**
