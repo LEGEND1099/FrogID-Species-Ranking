@@ -1,0 +1,607 @@
+---
+title: "Environmental Context, Species Ranking and Conservation Blind Spots in Australian FrogID Data"
+subtitle: "STAT5003 Project Plan and Exploratory Data Analysis — Week 7"
+author: "W11G03 — Deepak, Pallavi, Aradhya, Surabhi, Saksham"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show code"
+    embed-resources: true
+    toc: false
+execute:
+  warning: false
+  message: false
+---
+
+<style>
+@media print {
+  @page {
+    margin: 0.3in 0.25in 0.3in 0.25in;
+    size: A4;
+  }
+
+  body, .quarto-title, p, li, blockquote, .cell-output, figcaption {
+    font-size: 8.2pt !important;
+    text-align: left !important;
+    line-height: 1.25 !important;
+    font-family: "Times New Roman", Times, serif !important;
+    -webkit-font-smoothing: antialiased !important;
+    font-synthesis: none !important;
+    text-rendering: optimizeLegibility !important;
+  }
+
+  pre, code, .sourceCode, tt {
+    font-family: "Courier New", Courier, monospace !important;
+    font-size: 7pt !important;
+    line-height: 1.05 !important;
+  }
+
+  h1, .title { font-size: 13pt !important; margin: 7pt 0 5pt !important; }
+  h2 { font-size: 10pt !important; margin: 5pt 0 3pt !important; }
+  h3 { font-size: 9pt !important; margin: 2pt 0 1pt !important; }
+  h4 { font-size: 8.5pt !important; margin: 2pt 0 1pt !important; }
+
+  p { margin: 1pt 0 !important; }
+  ul, ol { margin: 1pt 0 1pt 12pt !important; }
+  li { margin-bottom: 0 !important; }
+  blockquote { margin: 2pt 6pt !important; padding: 1pt 4pt !important; }
+  hr { margin: 4pt 0 !important; }
+  section, .section { margin-bottom: 2pt !important; }
+
+  table {
+    font-size: 7.7pt !important;
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin: 2pt 0 1pt !important;
+  }
+
+  th, td {
+    padding: 1.3pt 3pt !important;
+    text-align: left !important;
+    line-height: 1.18 !important;
+  }
+
+  .cell-output-display img {
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: 2.55in !important;
+    display: block !important;
+    margin: 2pt auto !important;
+  }
+
+  #fig-class-distribution img { max-height: 2.45in !important; }
+  #fig-missingness-map img { max-height: 2.55in !important; }
+  #fig-univariate-environment img { max-height: 2.55in !important; }
+  #fig-season img { max-height: 2.9in !important; }
+  #fig-species-footprints img {
+    width: 92% !important;
+    max-height: 4.8in !important;
+  }
+  #fig-environment-composition img {
+    width: 94% !important;
+    max-height: 2.75in !important;
+  }
+
+  figure, .cell {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .cell-output-display {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  #TOC, .sidebar, nav[role="doc-toc"] { display: none !important; }
+
+  /* The submitted HTML keeps folded code available. Hide it only in print,
+     because the PDF is used solely to check the six-page limit. */
+  details summary, .code-fold-btn, .cell-code {
+    display: none !important;
+  }
+
+  .quarto-title-meta {
+    font-size: 7.5pt !important;
+    margin: 1pt 0 !important;
+  }
+
+  p, li { orphans: 3; widows: 3; }
+  h2, h3, h4 { page-break-after: avoid; }
+}
+</style>
+
+```{r}
+#| label: setup
+
+library(ggplot2)
+library(dplyr)
+
+# Render safely from either the repository root or /report.
+project_file <- function(...) {
+  candidates <- c(
+    file.path(...),
+    file.path("..", ...)
+  )
+  hit <- candidates[file.exists(candidates)][1]
+  if (is.na(hit)) {
+    stop("Could not find project file: ", file.path(...))
+  }
+  hit
+}
+
+# Shared data are loaded once so later chunks do not depend on earlier figures.
+frog <- as.data.frame(
+  readRDS(
+    project_file("data", "processed", "frog_primary_multiclass.rds")
+  )
+)
+
+class_dist <- read.csv(
+  project_file("outputs", "tables", "eda02_class_distribution.csv")
+)
+class_dist <- class_dist[order(class_dist$events, decreasing = TRUE), ]
+species_levels <- rev(class_dist$species)
+
+# Optional coastline layer. The project renv includes maps; tryCatch keeps the
+# report renderable even if that optional package is unavailable on another machine.
+aus_outline <- tryCatch(
+  ggplot2::map_data("world", region = "Australia"),
+  error = function(e) NULL
+)
+
+theme_set(theme_minimal(base_size = 11))
+```
+
+# Framing & Dataset Selection
+
+FrogID is an Australian citizen-science project in which people submit frog-call recordings from a smartphone and experts identify the species heard (Rowley & Callaghan, 2020). Our task is **multiclass classification**, meaning one recording can be assigned to one of more than two possible labels; here the labels are 18 frog species.
+
+For each recording, **ranking** means ordering all 18 candidate species from most to least likely rather than returning only one guess. We deliberately do **not** use the audio itself. We ask how much can be learned from when and where the recording was made, together with the long-term climate and elevation of that place.
+
+> **Research question:** To what extent can season, climate, elevation and public location rank which of 18 common Australian frog species was detected in a FrogID recording, given that sensitive locations are deliberately blurred in the public data?
+
+A central methodological risk is that a future model may appear successful mainly because it recognises familiar Australian locations rather than transferable seasonal or environmental patterns.
+
+This matters to ecological researchers, conservation agencies and citizen-science teams. If contextual ranking is reliable, it could act as a screening aid by placing plausible species near the top of a short list for expert review. If performance collapses when tested in new geographic areas, that is a warning not to apply the model beyond familiar locations. The conservation analysis separately shows where public location protection prevents the same approach from being tested on threatened taxa.
+
+*All figure and table code is included in the submitted HTML and folded under **Show code**.*
+
+# Consider & Gather Data
+
+We integrated three public sources. **[FrogID Dataset 6](https://collections.ala.org.au/public/show/dr14760)** contains expert-validated detections from November 2017 to November 2023 (Australian Museum, 2025; Gillard & Rowley, 2025). A *recording* is one FrogID submission; one recording can contain several identified species. The downloaded file contains **974,120 species-occurrence rows representing 542,287 recordings**. FrogID is **presence-only** data: it tells us where a species was detected, but an empty area does not prove that the species was absent there (Rowley & Callaghan, 2020).
+
+**[WorldClim 2.1](https://www.worldclim.org/data/worldclim21.html)** provides long-term climate and elevation, with one climate value for roughly every 1 km square of land (Fick & Hijmans, 2017). Its climate values describe typical **1970–2000** conditions, not weather on the recording day. We attached WorldClim information by looking up the grid square containing each published FrogID location; the recording month selected the corresponding long-term monthly temperature and rainfall layer.
+
+For conservation context we used the Australian Government **[Threatened Species State Lists](https://data.gov.au/data/dataset/ae652011-f39e-4c6c-91b8-1dc2d2dfee8f)**, published from the Species Profile and Threats Database (SPRAT) under the Environment Protection and Biodiversity Conservation (EPBC) framework (Australian Government Department of Climate Change, Energy, the Environment and Water [DCCEEW], 2026). Scientific names were matched to the government list; conservation information is never used as a model input. The linked source names above open the original organisation/data pages so the datasets can be checked directly.
+
+A recording was treated as **clean** only if the whole recording passed our public-location checks: valid date and coordinates, stated location uncertainty no greater than 1 km, location not flagged as hidden/obscured, and no deliberately generalised location. If any species row in a recording failed, the whole recording was excluded. This left **519,414 clean recordings**. Of these, **291,103 contained exactly one species**. Selecting every species with at least **2,000 clean single-species recordings** produced our main dataset of **247,406 recordings, 18 species and 30 possible model inputs**. A separate **213,675-recording multi-species pool** containing at least one selected species is kept outside training; **127,322** of those contain only the 18 selected species and are eligible for the strict later ranking evaluation.
+
+The dataset satisfies four assignment criteria:
+
+| Criterion | Evidence and why it matters |
+|---|---|
+| **Large** | 247,406 main modelling recordings (>10,000). Each model will be fitted repeatedly, so we will test a limited set of model settings rather than search exhaustively. |
+| **Messy** | 4,806 recordings (1.94%) are missing the complete environmental block. We examine both the amount and where those gaps occur before choosing a response. |
+| **Integrated** | FrogID was linked to WorldClim by public location/month and to the government conservation list by scientific name. |
+| **Multi-class** | The species label has 18 possible classes and is strongly imbalanced. |
+
+We do **not** claim “Complex” under the assignment definition because the modelling set has 30 candidate inputs, not more than 100.
+
+```{r}
+#| label: fig-class-distribution
+#| fig-cap: "Distribution of the 18 species labels in the main modelling dataset."
+#| fig-alt: "Horizontal bars showing a strongly imbalanced 18-species class distribution, with Crinia signifera much larger than the other classes."
+#| fig-width: 8
+#| fig-height: 4.8
+
+plot_class <- class_dist
+plot_class$species <- factor(
+  plot_class$species,
+  levels = species_levels
+)
+
+ggplot(plot_class, aes(x = species, y = events)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    x = NULL,
+    y = "Recordings"
+  )
+```
+
+@fig-class-distribution shows the imbalance clearly. *Crinia signifera* contributes **35.4%** of the recordings, the five most common species contribute **71.8%**, and the largest class is about **40.6 times** the smallest. In the full EDA sample, a naive rule that always guessed the most common species would already be correct **35.4%** of the time. Accuracy alone could therefore look respectable while uncommon species are handled badly.
+
+# Exploratory Data Analysis (EDA)
+
+Our EDA follows four questions in order: **Is the data clean enough to model? Does season differ by species? How strongly is the target tied to geography? And does environment retain a relationship with species mix once geography is considered?** @fig-class-distribution above already provides the univariate view of the outcome.
+
+## Missing values and predictor distributions
+
+All 4,806 environmentally incomplete recordings lose **all 22 environmental values together**; the remaining **242,600 recordings are complete**. The number is small, but the location pattern matters.
+
+```{r}
+#| label: fig-missingness-map
+#| fig-cap: "Geographic pattern of environmental missingness. Each displayed square is 1° × 1° and contains at least 20 recordings; brighter squares have a higher percentage of recordings missing all 22 environmental variables."
+#| fig-alt: "Map of Australia made from one-degree squares showing that environmental missingness is concentrated in particular areas rather than spread evenly."
+#| fig-width: 7.5
+#| fig-height: 4.2
+
+miss_geo <- read.csv(
+  project_file("outputs", "tables", "eda06_grid_missingness_1deg.csv")
+) %>%
+  filter(events >= 20)
+
+p_missing <- ggplot(
+  miss_geo,
+  aes(x = cell_lon, y = cell_lat, fill = missing_percent)
+) +
+  geom_tile(width = 1, height = 1) +
+  scale_fill_viridis_c(name = "Missing (%)") +
+  coord_quickmap(
+    xlim = c(112, 154),
+    ylim = c(-44, -10),
+    expand = FALSE
+  ) +
+  labs(
+    x = "Longitude (east–west position)",
+    y = "Latitude (north–south position)"
+  )
+
+if (!is.null(aus_outline)) {
+  p_missing <- p_missing +
+    geom_path(
+      data = aus_outline,
+      aes(x = long, y = lat, group = group),
+      inherit.aes = FALSE,
+      linewidth = 0.25
+    )
+}
+
+p_missing
+```
+
+@fig-missingness-map shows that the missing values are **geographically concentrated**, not evenly scattered. We use larger 1° squares here only to make the regional missingness pattern easy to see; the later validation uses finer 0.5° squares. The ten 1° squares with the most missing recordings contain about **77.2%** of all 4,806 missing cases. Removing them changes the overall species distribution only slightly, but it removes more information from some places than others. We will therefore compare environmental models on the same **242,600 recordings with all environmental values present** and report this geographic limitation rather than estimate replacement climate values from nearby locations.
+
+The environmental inputs also use very different units and shapes. WorldClim's **BIO1–BIO19** are standard summaries of long-term temperature and rainfall. @fig-univariate-environment shows one temperature summary, one rainfall total, typical rainfall for the recording month and elevation.
+
+```{r}
+#| label: fig-univariate-environment
+#| fig-cap: "Examples of environmental distributions for the 242,600 recordings with complete environmental data. Precipitation and elevation have long upper tails."
+#| fig-alt: "Four histograms showing annual mean temperature, annual precipitation, typical precipitation in the recording month, and elevation on different numerical scales."
+#| fig-width: 8
+#| fig-height: 4.5
+
+env_plot <- bind_rows(
+  data.frame(
+    variable = "Annual mean temperature (BIO1, °C)",
+    value = frog$BIO1
+  ),
+  data.frame(
+    variable = "Annual precipitation (BIO12, mm)",
+    value = frog$BIO12
+  ),
+  data.frame(
+    variable = "Typical precipitation in recording month (mm)",
+    value = frog$climatological_prec_event_month
+  ),
+  data.frame(
+    variable = "Elevation (m)",
+    value = frog$elevation
+  )
+)
+
+ggplot(env_plot, aes(x = value)) +
+  geom_histogram(bins = 35, na.rm = TRUE) +
+  facet_wrap(~ variable, scales = "free", ncol = 2) +
+  labs(
+    x = NULL,
+    y = "Recordings"
+  )
+```
+
+For example, median elevation is only **76 m**, while the maximum is **2,130 m**; median annual precipitation is **1,002 mm**, while the maximum is **5,182 mm**. These extreme values are plausible Australian environments, so we will not delete them simply because they are numerically unusual. Different units do, however, mean that distance-based models must rescale their inputs so a variable measured in large numbers does not dominate.
+
+## Climate variables overlap heavily
+
+A second issue is **feature–feature overlap**: several climate variables measure closely related aspects of the same conditions. We use **Spearman correlation**, which ranges from −1 to 1 and describes whether two variables tend to increase or decrease together. The strength can be read without the sign by using its absolute value.
+
+```{r}
+#| label: tbl-env-correlation
+#| tbl-cap: "The eight environmental predictor pairs with absolute Spearman correlation of at least 0.90."
+#| echo: true
+
+corr <- read.csv(
+  project_file(
+    "outputs", "tables",
+    "eda05_environmental_correlation_pairs.csv"
+  )
+)
+
+top_corr <- corr %>%
+  filter(absolute_spearman_rho >= 0.90) %>%
+  transmute(
+    `Variable pair` = paste(feature_a, "↔", feature_b),
+    `Spearman correlation` = sprintf("%.3f", spearman_rho)
+  )
+
+knitr::kable(
+  top_corr,
+  align = c("l", "r")
+)
+```
+
+@tbl-env-correlation shows **eight** pairs above 0.90; **17** pairs are above 0.80. For example, BIO13 and BIO16 both summarise rainfall in very wet periods. There is also an exact definitional dependency: **BIO7 (annual temperature range) is BIO5 minus BIO6**, apart from tiny floating-point rounding in the extracted data. These are different problems from different numerical scales. We will handle scale by standardising relevant inputs, and handle overlap with either **regularisation** (reducing reliance on unstable individual coefficients) or **principal component analysis (PCA)**, which combines correlated variables into a smaller set of summary variables.
+
+## Season changes which species are recorded
+
+The mix of species changes through the year. We measured this using **Cramér's V**, which ranges from 0 (no relationship) to 1 (very strong relationship); month and recorded species had **Cramér's V = 0.197**.
+
+```{r}
+#| label: fig-season
+#| fig-cap: "Within-species monthly recording shares. Brighter cells indicate months containing a larger share of that species' FrogID recordings."
+#| fig-alt: "Heatmap of 18 frog species by month showing distinct seasonal recording patterns, with some species concentrated in winter and others in late spring and summer."
+#| fig-width: 8
+#| fig-height: 5.2
+
+season <- read.csv(
+  project_file("outputs", "tables", "eda03_species_month_distribution.csv")
+)
+
+stopifnot(all(season$month_name %in% month.abb))
+
+season$month_name <- factor(
+  season$month_name,
+  levels = month.abb
+)
+
+season$species <- factor(
+  season$species,
+  levels = species_levels
+)
+
+ggplot(
+  season,
+  aes(x = month_name, y = species, fill = within_species_share)
+) +
+  geom_tile() +
+  scale_fill_viridis_c(
+    name = "Share of that\nspecies' recordings",
+    labels = function(x) paste0(round(100 * x), "%")
+  ) +
+  labs(
+    x = "Month",
+    y = NULL
+  ) +
+  theme(axis.text.y = element_text(size = 7))
+```
+
+The contrast is visible in @fig-season: **15.6% of *Crinia signifera* recordings occur in August**, while ***Litoria caerulea* peaks in November at 32.4%** and is rarely recorded in winter. These are patterns in submitted **detections**, not estimates of population abundance, because citizen recording effort also changes through time. For modelling we will encode month with sine and cosine values so December and January remain close together rather than being treated as opposite ends of a 1–12 number line.
+
+## Geography is a major source of structure
+
+The main 247,406-recording dataset contains **188,063 distinct public latitude/longitude locations**. Latitude describes north–south position and longitude east–west position. **30.2% of recordings** occur at coordinates that appear more than once.
+
+To summarise location without publishing exact points, we divide Australia into coarse **grid cells**, meaning geographic squares. A **0.5-degree cell** is 0.5° tall and 0.5° wide in latitude/longitude—roughly **56 km north-to-south**, although east–west width changes with latitude. The data occupy **762 such cells**, and the ten busiest contain about **40.1%** of all recordings.
+
+```{r}
+#| label: fig-species-footprints
+#| fig-cap: "Where the 18 target species were recorded, summarised into 0.5° squares. Brighter squares contain more recordings on a logarithmic colour scale, so both low- and high-count areas remain visible. These are recording locations, not species ranges: an empty square means the species was not recorded there in FrogID, not that it is absent."
+#| fig-alt: "Eighteen small maps of Australia, one per frog species, showing very different geographic recording footprints with a coastline outline."
+#| fig-width: 9.5
+#| fig-height: 6.5
+
+grid_size <- 0.5
+
+geo <- frog %>%
+  mutate(
+    cell_x = floor(decimalLongitude / grid_size),
+    cell_y = floor(decimalLatitude / grid_size),
+    cell_lon = (cell_x + 0.5) * grid_size,
+    cell_lat = (cell_y + 0.5) * grid_size
+  ) %>%
+  count(
+    scientificName,
+    cell_lon,
+    cell_lat,
+    name = "recordings"
+  )
+
+p_geo <- ggplot(
+  geo,
+  aes(x = cell_lon, y = cell_lat, fill = recordings)
+) +
+  geom_tile(width = 0.5, height = 0.5) +
+  facet_wrap(~ scientificName, ncol = 4) +
+  scale_fill_viridis_c(
+    name = "Recordings",
+    transform = "log10"
+  ) +
+  coord_quickmap(
+    xlim = c(112, 154),
+    ylim = c(-44, -10),
+    expand = FALSE
+  ) +
+  labs(x = NULL, y = NULL) +
+  theme(
+    strip.text = element_text(size = 7.5),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
+  )
+
+if (!is.null(aus_outline)) {
+  p_geo <- p_geo +
+    geom_path(
+      data = aus_outline,
+      aes(x = long, y = lat, group = group),
+      inherit.aes = FALSE,
+      linewidth = 0.22
+    )
+}
+
+p_geo
+```
+
+@fig-species-footprints makes the modelling risk visible: species have very different public recording footprints. The counts also reflect **where people choose to record**, so busy squares do not necessarily contain more frogs. If recordings are divided randomly into a model-building group and a checking group, the same or nearby places can appear on both sides. A model may then look successful partly because it has already seen almost the same geography.
+
+This is why our later validation will also keep each 0.5° square entirely within one fold. The 0.5° scale is a data-driven compromise: it gives geographic separation while retaining **762 occupied cells**, and every target species occurs in at least **23** of them. Coarser grids leave less spatial support for the rarer species.
+
+## Environmental differences remain associated with species mix, but geography is stronger
+
+@fig-species-footprints raises an uncomfortable possibility: if species are separated mainly by location, climate may add little beyond what location already reveals. We therefore asked: **among pairs of areas that are already similar distances apart, do environmentally different areas also contain different mixes of frog species?**
+
+Here, **species composition** means the proportions of the 18 species recorded in an area. We compare two areas using **total variation distance (TVD)**: 0 means identical species proportions and 1 means no overlap. For the stable comparison we use 0.5° squares containing at least **20 recordings**. We summarised each square's median BIO1–BIO19 and elevation, standardised those variables, and used PCA to combine them into **four environmental summaries capturing at least 90% of the variation**. Environmental distance is the straight-line distance between those four summaries; geographic distance is the kilometre distance between square centres.
+
+```{r}
+#| label: fig-environment-composition
+#| fig-cap: "Species-mix difference across environmental-distance quartiles within comparable geographic-distance bands. Q1 contains the environmentally most similar pairs and Q4 the most different; only pairs under 500 km are shown."
+#| fig-alt: "Four line charts for areas less than 50, 50 to 100, 100 to 250, and 250 to 500 kilometres apart. In each panel, species-mix difference generally rises as environmental difference increases."
+#| fig-width: 9.2
+#| fig-height: 4.3
+
+eq <- read.csv(
+  project_file(
+    "outputs", "tables",
+    "eda09b_environment_quartile_summary.csv"
+  )
+)
+
+keep_bins <- c("<50", "50-100", "100-250", "250-500")
+eq <- eq[eq$distance_bin %in% keep_bins, ]
+
+eq$distance_bin <- factor(
+  eq$distance_bin,
+  levels = keep_bins,
+  labels = c(
+    "Areas <50 km apart",
+    "50–100 km apart",
+    "100–250 km apart",
+    "250–500 km apart"
+  )
+)
+
+eq$environmental_distance_quartile <- factor(
+  eq$environmental_distance_quartile,
+  levels = 1:4,
+  labels = c("Q1\nmost similar", "Q2", "Q3", "Q4\nmost different")
+)
+
+ggplot(
+  eq,
+  aes(
+    x = environmental_distance_quartile,
+    y = median_composition_tvd,
+    group = 1
+  )
+) +
+  geom_line(linewidth = 0.7) +
+  geom_point(size = 2) +
+  facet_wrap(~ distance_bin, nrow = 1) +
+  labs(
+    x = "Environmental difference within each distance band",
+    y = "Difference in species mix\n(0 = same, 1 = no overlap)"
+  ) +
+  theme(
+    axis.text.x = element_text(size = 7),
+    strip.text = element_text(size = 7.5)
+  )
+```
+
+For these well-sampled squares, geographic distance has the stronger relationship with species mix (**Spearman correlation ≈ 0.72**) compared with environmental distance (**≈ 0.50**). When geographic distance is accounted for descriptively, the environment–composition relationship falls to about **0.17**. @fig-environment-composition nevertheless shows the same direction within the displayed distance bands: environmentally more different areas generally have more different recorded species mixes. This is **descriptive association, not evidence that climate causes the species pattern**.
+
+A second check found that species heard together also tend to have overlapping geographic recording footprints (**Spearman correlation ≈ 0.95** across the 153 target-species pairs). This strong association is consistent with geographic overlap contributing to apparent species-association patterns, giving us another reason to use geography-aware validation.
+
+## Conservation blind spot in the public data
+
+The analyses above depend on usable public locations. We therefore checked whether the same public-location approach remains usable for currently listed threatened frogs. Using the **current 2026 DCCEEW threatened-species list** applied to recordings made in 2017–2023, we matched **24 FrogID taxa** to nationally listed threatened taxa (DCCEEW, 2026). These 24 taxa occur in **6,749 distinct raw recordings**, but **none** survives the public-location rules used for the modelling dataset.
+
+For every one of those 6,749 recordings, the released location is deliberately less precise in all three ways we checked: its stated uncertainty is greater than 1 km, the exact location is flagged as obscured, and the published coordinates have been replaced by a more general location. This is a privacy/protection feature, not a data-quality failure (Gillard & Rowley, 2025). It means we cannot train or test the same public-coordinate approach on confirmed listed taxa. Names that do not match the current list are left **unresolved**, not labelled “non-threatened”; for example, *Litoria verreauxii* has a listed subspecies but is not treated as a confirmed species-level match.
+
+# Project Planning
+
+## Preprocessing, validation and feature plan
+
+The EDA leads directly to these preprocessing decisions:
+
+| Evidence from EDA | Planned response |
+|---|---|
+| 1.94% of recordings lack the entire environmental block, concentrated geographically | Compare environmental models on the same 242,600 complete recordings; do not estimate replacement climate values. |
+| Environmental inputs use very different units | Standardise numeric inputs **using training data only** for methods that depend on numerical distances or coefficients. |
+| 17 climate-variable pairs have \|correlation\| ≥ 0.80 and BIO7 is defined from BIO5/BIO6 | Use regularisation for multinomial regression and PCA for the LDA/kNN models; tree models keep the original variables. |
+| Species recording mix changes by month | Encode season with sine/cosine values so December and January remain neighbours. |
+| Species have very different geographic footprints, and repeated/nearby locations are common | Compare ordinary validation with geography-aware validation that keeps each 0.5° area together. |
+| Geography is stronger than environment, but environmental differences retain a smaller association with species mix | Compare M3 (season + climate + elevation) directly with M4 (M3 + latitude/longitude). |
+| Classes are highly imbalanced | Keep the observed training distribution in the primary analysis, but use class-aware evaluation so uncommon species cannot be hidden by overall accuracy. |
+
+**Cross-validation** means repeatedly building a model on one part of the data and checking it on a held-out part. We will compare two planned three-fold schemes: (1) ordinary event-level folds as a conventional reference, and (2) **geography-aware folds** that keep every 0.5° square together. We will begin with three folds because the 0.5° grid retains **762 occupied areas** and every target species occurs across at least **23** of them. When the folds are constructed, we will verify that **all 18 species appear in every model-building and held-out checking part**; if not, we will reduce the number of folds rather than split a geographic square and let closely related locations appear on both sides.
+
+Model settings will be chosen using only the model-building portion of each split; the held-out portion will be used only for evaluation.
+
+We will compare these sets of inputs:
+
+| Set | Information available to the model |
+|---|---|
+| **M0** | No contextual inputs; species are ranked only by how common they are in the training data. |
+| **M1** | Season: month/day-of-year encoded with sine and cosine. |
+| **M2** | M1 + BIO1–BIO19 + long-term average temperature and rainfall for the recording month. |
+| **M3** | M2 + elevation. |
+| **M4** | M3 + latitude and longitude. |
+
+Elevation showed weaker species separation than the strongest climate variables in our EDA, so **M3 treats elevation as an incremental test rather than assuming it will add substantial information**. The key comparison is **M3 versus M4**: does adding explicit latitude and longitude improve performance, and does any gain survive geography-aware validation? **Year is not a primary predictor**; after model selection, complete years 2018–2022 will be examined separately as a sensitivity check across complete calendar years.
+
+## Five planned classification models
+
+| Model | Why it is useful for this dataset |
+|---|---|
+| **Elastic-net multinomial logistic regression** | The simplest model in the set: each input changes the odds of each species in a regularised linear way. It directly addresses the strong climate-variable overlap found above. |
+| **PCA + Linear Discriminant Analysis (LDA)** | PCA first compresses redundant climate information; LDA then asks whether species can be separated by combinations of those summaries. |
+| **PCA + k-nearest neighbours (kNN)** | Predicts from the most similar past recordings. Because 30.2% of recordings share repeated coordinates, its ordinary-versus-spatial validation gap is a direct test of location memorisation. |
+| **Random forest** | A decision tree asks a sequence of simple yes/no questions about the inputs; a random forest averages many trees. It provides a flexible contrast to the simpler linear/distance models and can represent combinations of season, environment and geography. |
+| **XGBoost** | Builds decision trees sequentially so later trees focus on earlier mistakes. It is a second flexible tree approach, letting us test whether a more strongly optimised ensemble improves on the other model families under the same validation. |
+
+To avoid a very large five-model × five-feature-set experiment, elastic-net multinomial regression and XGBoost will first test the full M1–M4 progression. All five model families will then be compared on the two focal sets, **M3 and M4**, under both validation schemes. M0 remains the no-context reference.
+
+## Evaluation plan
+
+Our primary metric will be **Macro-F1**. F1 balances two questions: when the model predicts a species, how often is that prediction right (**precision**), and how many recordings of that species does it recover (**recall**)? “Macro” means the F1 score is calculated separately for each species and then averaged, so an uncommon species counts as much as a common one.
+
+We will also report:
+
+- **Accuracy:** percentage of recordings whose top-ranked species is correct.
+- **Per-species recall:** for each frog species, the percentage of its recordings correctly recovered.
+- **Top-3 / Top-5 accuracy:** whether the true species is anywhere in the first three or five suggestions, giving short candidate lists that an expert could realistically inspect.
+- **Mean reciprocal rank (MRR):** gives a score of 1 when the correct species ranks first, 1/2 when it ranks second, 1/3 when it ranks third, and so on, then averages those scores.
+
+The final model choice will use Macro-F1 under geography-aware validation. Ranking metrics and the **drop from ordinary to geography-aware validation** will be supporting evidence; a large drop would indicate that apparent performance depended strongly on familiar locations.
+
+The **213,675 multi-species recordings** remain completely outside fitting and tuning. After model selection, the strict ranking evaluation will use the **127,322 recordings for which every detected species belongs to the 18-species vocabulary**; the wider pool can be reported separately without treating species outside that vocabulary as model errors.
+
+## Timeline, responsibilities and backup plan
+
+| Week | Milestone | Lead responsibility | Backup / risk control |
+|---|---|---|---|
+| **7** | Freeze EDA, plan and Week 7 report | Deepak + whole-group review | Every result checked against saved EDA outputs |
+| **8** | Build preprocessing and random/spatial folds | Deepak, Pallavi | Saksham reviews class/fold checks; if a spatial assessment fold loses a species, reduce fold count rather than split cells |
+| **9** | Fit/tune five model families | Saksham (linear/distance); Surabhi & Aradhya (trees) | Paired review; if a model is too slow, reduce its tuning grid while keeping the planned held-out validation splits unchanged |
+| **10** | Compare models, feature sets and validation schemes | Deepak, Pallavi | Whole group checks metrics, error patterns and random-vs-spatial gaps |
+| **11** | Final analysis, report integration and reproducibility check | All members | Freeze code/results early; a second member reproduces key outputs |
+| **12** | Presentation preparation and rehearsal | All members | Shared slide ownership so one absence does not block delivery |
+
+# References
+
+Australian Government Department of Climate Change, Energy, the Environment and Water. (2026). *Threatened species state lists* [Data set]. data.gov.au. https://data.gov.au/data/dataset/ae652011-f39e-4c6c-91b8-1dc2d2dfee8f
+
+Australian Museum. (2025). *FrogID Dataset 6* [Data set]. Atlas of Living Australia. https://collections.ala.org.au/public/show/dr14760
+
+Fick, S. E., & Hijmans, R. J. (2017). WorldClim 2: New 1-km spatial resolution climate surfaces for global land areas. *International Journal of Climatology, 37*(12), 4302–4315. https://doi.org/10.1002/joc.5086
+
+Gillard, G., & Rowley, J. (2025, July 9). The FrogID Dataset 6.0 – nearly one million frog records now published open-access and online! *Australian Museum*. https://australian.museum/blog/amri-news/frogid-dataset-6/
+
+Rowley, J. J. L., & Callaghan, C. T. (2020). The FrogID dataset: Expert-validated occurrence records of Australia’s frogs collected by citizen scientists. *ZooKeys, 912*, 139–151. https://doi.org/10.3897/zookeys.912.38253
+
+# AI Use Statement
+
+We used **OpenAI ChatGPT, Anthropic Claude, and OpenAI Codex** to assist with background research, R code development/debugging, adversarial review of our reasoning and report for possible overreach, and language editing.
+
+The group made the final decisions on the project framing, data selection, exploratory data analysis (EDA), modelling plan, statistical interpretation, visualisations, and report content. All analyses were run by the group using our project data and R code. Every numerical result, figure, modelling decision, and technical claim included in the report was checked against the underlying datasets, saved analysis outputs, or reproducible code before inclusion. We remain fully responsible for all content and conclusions in this report.
