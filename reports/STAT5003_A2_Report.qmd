@@ -278,4 +278,4 @@ Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G. (2019). bloc
 
 ## AI-use declaration
 
-Generative AI tools assisted with planning, drafting/editing text, code suggestions and presentation of the investigation. Results reported here originate from the project's saved R model/evaluation outputs, not from AI-generated predictions. The group is responsible for verifying all calculations, citations, source code and interpretations. **The group must confirm that this declaration accurately describes its actual use and meets the unit's disclosure instructions before submission.**
+Generative AI tools assisted with planning, drafting/editing text, code suggestions and presentation of the investigation. Results reported here originate from the project's saved R model/evaluation outputs, not from AI-generated predictions. The group is responsible for verifying all calculations, citations, source code and interpretations.
