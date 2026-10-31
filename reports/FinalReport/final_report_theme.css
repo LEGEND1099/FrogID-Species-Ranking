@@ -1,0 +1,177 @@
+/* STAT5003 A2 | Field Notes report theme
+   Purpose: readable, lively HTML; compact A4 printing.
+   Load in the FINAL .qmd with: css: final_report_theme.css
+   Do NOT also load the older report_style.css unless you intend to manage overrides.
+*/
+:root {
+  --frog-ink: #203145;
+  --frog-deep: #17344f;
+  --frog-teal: #078c83;
+  --frog-blue: #196db5;
+  --frog-coral: #e65b48;
+  --frog-gold: #d79b1c;
+  --frog-violet: #6b4ba8;
+  --frog-soft-mint: #e7f6ef;
+  --frog-soft-gold: #fff1d7;
+  --frog-page: #fafbf9;
+  --frog-muted: #516578;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: var(--frog-ink);
+  background: var(--frog-page);
+  line-height: 1.48;
+}
+main.content, #quarto-content main, #quarto-content .content {
+  color: var(--frog-ink);
+}
+#title-block-header {
+  position: relative;
+  background: linear-gradient(115deg, #183753 0%, #176e71 72%, #0d9482 100%);
+  color: #fff;
+  border-radius: 13px;
+  padding: 1.2rem 1.5rem 1.1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 6px 22px #234e6120;
+}
+#title-block-header .title, #title-block-header .subtitle,
+#title-block-header .quarto-title-meta, #title-block-header p {
+  color: #fff !important;
+}
+#title-block-header .title { font-weight: 800; line-height: 1.16; }
+#title-block-header .subtitle { opacity: .92; }
+h1 {
+  color: var(--frog-deep);
+  font-weight: 750;
+  border-bottom: 1px solid #c8e4de;
+  border-left: 5px solid var(--frog-teal);
+  padding: .12em 0 .16em .55em;
+  margin-top: 1.5em;
+}
+h2 {
+  color: #156e73;
+  font-weight: 700;
+  margin-top: 1.2em;
+}
+h3 { color: #65519c; font-weight: 700; }
+strong { font-weight: 700; color: #203145; }
+a { color: #066f91; text-decoration-thickness: 1px; text-underline-offset: .15em; }
+a:hover { color: var(--frog-coral); }
+
+/* Subtle, academic-looking table accents. */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: .9em;
+  margin: .55em 0 .85em;
+}
+thead th {
+  background: #21475d;
+  color: white;
+  font-weight: 700;
+  border-bottom: 0 !important;
+}
+tr:nth-child(even) td { background: #f1f8f5; }
+tr:nth-child(odd) td { background: #fffefa; }
+th, td {
+  border-bottom: 1px solid #dae7e8;
+  padding: .34em .52em;
+  vertical-align: top;
+}
+figcaption, .figure-caption, .table-caption {
+  color: var(--frog-muted);
+  font-size: .86em;
+  line-height: 1.35;
+  text-align: left;
+}
+figure, .quarto-figure { margin: .8em auto 1.05em; }
+.cell-output-display img, .quarto-figure img { max-width: 100%; height: auto; object-fit: contain; }
+
+/* Code is inspectable when HTML is opened; collapsed by default in Quarto. */
+details {
+  border: 1px solid #cee3df;
+  border-radius: 7px;
+  background: #f7fcfa;
+  margin: .5em 0;
+  padding: .1em .6em;
+}
+summary { color: #006a62; font-weight: 650; cursor: pointer; }
+pre.sourceCode, div.sourceCode { background: #f5f8fb; }
+.callout-note { border-left-color: var(--frog-teal) !important; }
+.callout-tip { border-left-color: var(--frog-gold) !important; }
+blockquote { border-left: 3px solid #9bcfc8; padding-left: .8em; color: #40556a; }
+
+/* Compact print layout without relying on microscopic type or banner colours. */
+@media print {
+  @page { size: A4; margin: .35in .39in .35in .39in; }
+  html, body { background: white !important; }
+  body, main, .content, .quarto-title, p, li, td, th, blockquote,
+  .cell-output, figcaption, .figure-caption {
+    font-family: "Times New Roman", Times, serif !important;
+    font-size: 8.8pt !important;
+    line-height: 1.25 !important;
+    color: #203145 !important;
+  }
+  #title-block-header {
+    background: white !important;
+    color: var(--frog-ink) !important;
+    box-shadow: none !important;
+    padding: 0 0 4pt !important;
+    margin: 0 0 4pt !important;
+    border-radius: 0 !important;
+    border-bottom: 2pt solid #078c83;
+  }
+  #title-block-header .title, #title-block-header .subtitle,
+  #title-block-header .quarto-title-meta, #title-block-header p {
+    color: #203145 !important;
+  }
+  #title-block-header .title, h1.title {
+    font-size: 15pt !important;
+    margin: 2pt 0 !important;
+    line-height: 1.13 !important;
+  }
+  h1 {
+    font-size: 12pt !important;
+    margin: 6pt 0 2pt !important;
+    padding: 0 0 1pt 5pt !important;
+    border-left: 2.5pt solid #078c83 !important;
+    border-bottom: 0 !important;
+    break-after: avoid;
+  }
+  h2 { font-size: 10.3pt !important; margin: 4pt 0 2pt !important; break-after: avoid; }
+  h3 { font-size: 9.5pt !important; margin: 3pt 0 1pt !important; break-after: avoid; }
+  p { margin: 2pt 0 !important; }
+  ul, ol { margin: 2pt 0 2pt 12pt !important; padding-left: 8pt !important; }
+  li { margin: 0 0 1pt !important; }
+  section, .section { margin-bottom: 2pt !important; }
+  main, #quarto-content, .page-columns, .content { max-width: 100% !important; }
+  table { font-size: 8.1pt !important; margin: 3pt 0 4pt !important; }
+  thead th { background: #def0ed !important; color: #203145 !important; border-bottom: 1pt solid #078c83 !important; }
+  th, td { font-size: 8.1pt !important; line-height: 1.18 !important; padding: 2pt 3pt !important; }
+  tr:nth-child(even) td { background: #f7faf9 !important; }
+  tr:nth-child(odd) td { background: white !important; }
+  figure, .quarto-figure, .cell { margin: 3pt 0 4pt !important; }
+  .cell-output-display img, .quarto-figure img {
+    max-width: 100% !important; width: auto !important; height: auto !important;
+    max-height: none !important; margin: 2pt auto !important; object-fit: contain;
+  }
+  /* Match the all-species export width; preserve its readable label sizes.
+     Let figures use their natural aspect ratio rather than a height cap.
+     Final report pagination must be checked on the actual printed HTML. */
+  .figure-tall img, #fig-rf-xgb-all-species img {
+    width: 7.4in !important;
+    max-width: 100% !important;
+    max-height: none !important;
+  }
+  figcaption, .figure-caption, .quarto-figure figcaption {
+    font-size: 7.7pt !important; line-height: 1.18 !important; margin: 1pt 0 3pt !important;
+  }
+  details, .code-fold-btn, details summary { display: none !important; }
+  #TOC, .sidebar, nav[role="doc-toc"], .quarto-sidebar-container, #quarto-margin-sidebar { display: none !important; }
+  figure, .quarto-figure, table, tr, .cell-output-display { break-inside: avoid; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  p, li { orphans: 2; widows: 2; }
+  .callout { padding: 3pt 5pt !important; margin: 3pt 0 !important; }
+}
